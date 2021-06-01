@@ -24,36 +24,59 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 exports.__esModule = true;
-exports.Users = void 0;
+exports.Usuario = void 0;
 var typeorm_1 = require("typeorm");
-var Users = /** @class */ (function (_super) {
-    __extends(Users, _super);
-    function Users() {
+var Clase_1 = require("./Clase");
+var Valoracion_1 = require("./Valoracion");
+var Inscripcion_1 = require("./Inscripcion");
+var Usuario = /** @class */ (function (_super) {
+    __extends(Usuario, _super);
+    function Usuario() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
     __decorate([
         typeorm_1.PrimaryGeneratedColumn(),
         __metadata("design:type", Number)
-    ], Users.prototype, "id");
-    __decorate([
-        typeorm_1.Column(),
-        __metadata("design:type", String)
-    ], Users.prototype, "first_name");
-    __decorate([
-        typeorm_1.Column(),
-        __metadata("design:type", String)
-    ], Users.prototype, "last_name");
+    ], Usuario.prototype, "id");
     __decorate([
         typeorm_1.Column({ unique: true }),
         __metadata("design:type", String)
-    ], Users.prototype, "email");
+    ], Usuario.prototype, "email");
     __decorate([
         typeorm_1.Column(),
         __metadata("design:type", String)
-    ], Users.prototype, "password");
-    Users = __decorate([
-        typeorm_1.Entity()
-    ], Users);
-    return Users;
+    ], Usuario.prototype, "contrasenia");
+    __decorate([
+        typeorm_1.Column(),
+        __metadata("design:type", String)
+    ], Usuario.prototype, "nombre");
+    __decorate([
+        typeorm_1.Column(),
+        __metadata("design:type", String)
+    ], Usuario.prototype, "apellido");
+    __decorate([
+        typeorm_1.Column({ "default": 0 }),
+        __metadata("design:type", Number)
+    ], Usuario.prototype, "creditos");
+    __decorate([
+        typeorm_1.OneToMany(function () { return Clase_1.Clase; }, function (clase) { return clase.profesor; }),
+        __metadata("design:type", Array)
+    ], Usuario.prototype, "clases");
+    __decorate([
+        typeorm_1.OneToMany(function () { return Valoracion_1.Valoracion; }, function (valoracion) { return valoracion.valorado; }),
+        __metadata("design:type", Array)
+    ], Usuario.prototype, "valoraciones");
+    __decorate([
+        typeorm_1.OneToMany(function () { return Valoracion_1.Valoracion; }, function (valoracion) { return valoracion.valorador; }),
+        __metadata("design:type", Array)
+    ], Usuario.prototype, "historial_valoraciones");
+    __decorate([
+        typeorm_1.OneToMany(function () { return Inscripcion_1.Inscripcion; }, function (inscripcion) { return inscripcion.usuario; }),
+        __metadata("design:type", Array)
+    ], Usuario.prototype, "inscripciones");
+    Usuario = __decorate([
+        typeorm_1.Entity('usuarios')
+    ], Usuario);
+    return Usuario;
 }(typeorm_1.BaseEntity));
-exports.Users = Users;
+exports.Usuario = Usuario;

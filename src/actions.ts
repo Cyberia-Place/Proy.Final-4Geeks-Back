@@ -1,27 +1,30 @@
 import { Request, Response } from 'express'
 import { getRepository } from 'typeorm'  // getRepository"  traer una tabla de la base de datos asociada al objeto
-import { Users } from './entities/Users'
 import { Exception } from './utils'
+import { Usuario } from './entities/Usuario';
 
-export const createUser = async (req: Request, res:Response): Promise<Response> =>{
+export const registrarse = async (request: Request, response: Response): Promise<Response> => {
+    // Validar datos ingresados
+    if(!request.body.email) throw new Exception('Falta la propiedad email en el body');
+    if(!request.body.contrasenia) throw new Exception('Falta la propiedad contrasenia en el body');
+    if(!request.body.nombre) throw new Exception('Falta la propiedad nombre en el body');
+    if(!request.body.apellido) throw new Exception('Falta la propiedad apellido en el body');
 
-	// important validations to avoid ambiguos errors, the client needs to understand what went wrong
-	if(!req.body.first_name) throw new Exception("Please provide a first_name")
-	if(!req.body.last_name) throw new Exception("Please provide a last_name")
-	if(!req.body.email) throw new Exception("Please provide an email")
-	if(!req.body.password) throw new Exception("Please provide a password")
+    // Validar email unico
+    let usuario = await getRepository(Usuario).findOne({
+        where: { email: request.body.email }
+    });
+    if(usuario) throw new Exception('Ya existe un usuario con ese email');
 
-	const userRepo = getRepository(Users)
-	// fetch for any user with this email
-	const user = await userRepo.findOne({ where: {email: req.body.email }})
-	if(user) throw new Exception("Users already exists with this email")
+    // Se crea la nueva instancia de usuario
+    usuario = getRepository(Usuario).create({
+        email: request.body.email,
+        contrasenia: request.body.contrasenia,
+        nombre: request.body.nombre,
+        apellido: request.body.apellido
+    });
 
-	const newUser = getRepository(Users).create(req.body);  //Creo un usuario
-	const results = await getRepository(Users).save(newUser); //Grabo el nuevo usuario 
-	return res.json(results);
-}
+    let result = await getRepository(Usuario).save(usuario);
 
-export const getUsers = async (req: Request, res: Response): Promise<Response> =>{
-		const users = await getRepository(Users).find();
-		return res.json(users);
+    return response.json(result);
 }
