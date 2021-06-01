@@ -24,33 +24,28 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 exports.__esModule = true;
-exports.Planet = void 0;
+exports.Categoria = void 0;
 var typeorm_1 = require("typeorm");
-var Users_1 = require("./Users");
-var Planet = /** @class */ (function (_super) {
-    __extends(Planet, _super);
-    function Planet() {
+var Categoria = /** @class */ (function (_super) {
+    __extends(Categoria, _super);
+    function Categoria() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
     __decorate([
         typeorm_1.PrimaryGeneratedColumn(),
         __metadata("design:type", Number)
-    ], Planet.prototype, "id");
+    ], Categoria.prototype, "id");
     __decorate([
         typeorm_1.Column({ unique: true }),
         __metadata("design:type", String)
-    ], Planet.prototype, "name");
+    ], Categoria.prototype, "nombre");
     __decorate([
-        typeorm_1.Column({ nullable: true }),
+        typeorm_1.Column(),
         __metadata("design:type", String)
-    ], Planet.prototype, "picture_url");
-    __decorate([
-        typeorm_1.ManyToMany(function () { return Users_1.Users; }, function (user) { return user.planets; }),
-        __metadata("design:type", Array)
-    ], Planet.prototype, "users");
-    Planet = __decorate([
-        typeorm_1.Entity()
-    ], Planet);
-    return Planet;
+    ], Categoria.prototype, "descripcion");
+    Categoria = __decorate([
+        typeorm_1.Entity('categorias')
+    ], Categoria);
+    return Categoria;
 }(typeorm_1.BaseEntity));
-exports.Planet = Planet;
+exports.Categoria = Categoria;
