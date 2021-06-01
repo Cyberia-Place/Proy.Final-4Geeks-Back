@@ -8,11 +8,10 @@
  */
 import { Router } from 'express';
 import { safe } from './utils';
-import { createUser } from './actions';
+import * as actions from './actions';
 
 const router = Router();
 
-// signup route, creates a new user in the DB
-router.post('/user', safe(createUser));
+router.post('/registrarse', safe(actions.registrarse));
 
 export default router;

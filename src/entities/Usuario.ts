@@ -21,7 +21,7 @@ export class Usuario extends BaseEntity {
     @Column()
     apellido: string;
 
-    @Column()
+    @Column({ default: 0 })
     creditos: number;
 
     @OneToMany(() => Clase, clase => clase.profesor)

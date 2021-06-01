@@ -36,27 +36,43 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 exports.__esModule = true;
-exports.getUsers = exports.createUser = void 0;
-var createUser = function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+exports.registrarse = void 0;
+var typeorm_1 = require("typeorm"); // getRepository"  traer una tabla de la base de datos asociada al objeto
+var utils_1 = require("./utils");
+var Usuario_1 = require("./entities/Usuario");
+var registrarse = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var usuario, result;
     return __generator(this, function (_a) {
-        // // important validations to avoid ambiguos errors, the client needs to understand what went wrong
-        // if(!req.body.first_name) throw new Exception("Please provide a first_name")
-        // if(!req.body.last_name) throw new Exception("Please provide a last_name")
-        // if(!req.body.email) throw new Exception("Please provide an email")
-        // if(!req.body.password) throw new Exception("Please provide a password")
-        // const userRepo = getRepository(Users)
-        // // fetch for any user with this email
-        // const user = await userRepo.findOne({ where: {email: req.body.email }})
-        // if(user) throw new Exception("Users already exists with this email")
-        // const newUser = getRepository(Users).create(req.body);  //Creo un usuario
-        // const results = await getRepository(Users).save(newUser); //Grabo el nuevo usuario 
-        return [2 /*return*/, res.json()];
+        switch (_a.label) {
+            case 0:
+                // Validar datos ingresados
+                if (!request.body.email)
+                    throw new utils_1.Exception('Falta la propiedad email en el body');
+                if (!request.body.contrasenia)
+                    throw new utils_1.Exception('Falta la propiedad contrasenia en el body');
+                if (!request.body.nombre)
+                    throw new utils_1.Exception('Falta la propiedad nombre en el body');
+                if (!request.body.apellido)
+                    throw new utils_1.Exception('Falta la propiedad apellido en el body');
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne({
+                        where: { email: request.body.email }
+                    })];
+            case 1:
+                usuario = _a.sent();
+                if (usuario)
+                    throw new utils_1.Exception('Ya existe un usuario con ese email');
+                // Se crea la nueva instancia de usuario
+                usuario = typeorm_1.getRepository(Usuario_1.Usuario).create({
+                    email: request.body.email,
+                    contrasenia: request.body.contrasenia,
+                    nombre: request.body.nombre,
+                    apellido: request.body.apellido
+                });
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).save(usuario)];
+            case 2:
+                result = _a.sent();
+                return [2 /*return*/, response.json(result)];
+        }
     });
 }); };
-exports.createUser = createUser;
-var getUsers = function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    return __generator(this, function (_a) {
-        return [2 /*return*/, res.json()];
-    });
-}); };
-exports.getUsers = getUsers;
+exports.registrarse = registrarse;
