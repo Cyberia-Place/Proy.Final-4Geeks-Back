@@ -35,11 +35,15 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 exports.__esModule = true;
-exports.registrarse = void 0;
+exports.logearse = exports.registrarse = void 0;
 var typeorm_1 = require("typeorm"); // getRepository"  traer una tabla de la base de datos asociada al objeto
 var utils_1 = require("./utils");
 var Usuario_1 = require("./entities/Usuario");
+var jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 var registrarse = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
     var usuario, result;
     return __generator(this, function (_a) {
@@ -76,3 +80,26 @@ var registrarse = function (request, response) { return __awaiter(void 0, void 0
     });
 }); };
 exports.registrarse = registrarse;
+var logearse = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var usuario, token;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                // Validar datos ingresados
+                if (!request.body.email)
+                    throw new utils_1.Exception('Falta la propiedad email en el body');
+                if (!request.body.contrasenia)
+                    throw new utils_1.Exception('Falta la propiedad contrasenia en el body');
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne({
+                        where: { email: request.body.email, contrasenia: request.body.contrasenia }
+                    })];
+            case 1:
+                usuario = _a.sent();
+                if (!usuario)
+                    throw new utils_1.Exception('Email o contraseña incorrectos');
+                token = jsonwebtoken_1["default"].sign({ usuario: usuario }, process.env.JWT_KEY, { expiresIn: 60 * 60 });
+                return [2 /*return*/, response.json({ nombre: usuario.nombre, apellido: usuario.apellido, email: usuario.email, creditos: usuario.creditos, token: token })];
+        }
+    });
+}); };
+exports.logearse = logearse;

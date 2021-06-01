@@ -30,5 +30,8 @@ var express_1 = require("express");
 var utils_1 = require("./utils");
 var actions = __importStar(require("./actions"));
 var router = express_1.Router();
+// Ruta para realizar el reguistro de un usuario
 router.post('/registrarse', utils_1.safe(actions.registrarse));
+// Ruta para logearse
+router.post('/login', utils_1.safe(actions.logearse));
 exports["default"] = router;
