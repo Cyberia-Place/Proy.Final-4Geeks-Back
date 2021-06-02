@@ -2,8 +2,9 @@ import { Request, Response } from 'express'
 import { getRepository } from 'typeorm'  // getRepository"  traer una tabla de la base de datos asociada al objeto
 import { Exception } from './utils'
 import { Usuario } from './entities/Usuario';
+import jwt from 'jsonwebtoken';
 
-export const registrarse = async (request: Request, response: Response): Promise<Response> => {
+export const signUp = async (request: Request, response: Response): Promise<Response> => {
     // Validar datos ingresados
     if(!request.body.email) throw new Exception('Falta la propiedad email en el body');
     if(!request.body.contrasenia) throw new Exception('Falta la propiedad contrasenia en el body');
@@ -27,4 +28,30 @@ export const registrarse = async (request: Request, response: Response): Promise
     let result = await getRepository(Usuario).save(usuario);
 
     return response.json(result);
+}
+
+export const logIn = async (request: Request, response: Response): Promise<Response> => {
+    // Validar datos ingresados
+    if(!request.body.email) throw new Exception('Falta la propiedad email en el body');
+    if(!request.body.contrasenia) throw new Exception('Falta la propiedad contrasenia en el body');
+
+    // Verificar que existe un usuario con la password y el email
+    let usuario = await getRepository(Usuario).findOne({
+        select: ['id','email', 'nombre', 'apellido'] ,
+        where: { email: request.body.email, contrasenia: request.body.contrasenia }
+    });
+    if(!usuario) throw new Exception('Email o contraseña incorrectos');
+    
+    // Genero un token con la firma del usuario
+    let token = jwt.sign({ usuario }, process.env.JWT_KEY as string, { expiresIn: '1day' });
+
+    let expires = new Date();
+    expires.setDate(expires.getDate() + 1);
+    expires.setHours(expires.getHours() - 3);
+
+    return response.json({usuario , token, expires});
+}
+
+export const profile = async (request: Request, response: Response): Promise<Response> => {
+    return response.json(request.body);
 }
