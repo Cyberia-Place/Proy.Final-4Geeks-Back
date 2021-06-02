@@ -108,8 +108,19 @@ var logIn = function (request, response) { return __awaiter(void 0, void 0, void
 }); };
 exports.logIn = logIn;
 var profile = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var usuario;
     return __generator(this, function (_a) {
-        return [2 /*return*/, response.json(request.body)];
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne({
+                    select: ['id', 'email', 'nombre', 'apellido', 'imagen', 'pais', 'edad', 'descripcion'],
+                    where: { email: request.body.usuario.email }
+                })];
+            case 1:
+                usuario = _a.sent();
+                if (!usuario)
+                    throw new utils_1.Exception('No se encontro el usuario');
+                return [2 /*return*/, response.json(usuario)];
+        }
     });
 }); };
 exports.profile = profile;

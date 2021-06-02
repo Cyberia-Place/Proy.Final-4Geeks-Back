@@ -53,5 +53,12 @@ export const logIn = async (request: Request, response: Response): Promise<Respo
 }
 
 export const profile = async (request: Request, response: Response): Promise<Response> => {
-    return response.json(request.body);
+    let usuario = await getRepository(Usuario).findOne({
+        select: ['id', 'email', 'nombre', 'apellido', 'imagen', 'pais', 'edad', 'descripcion'],
+        where: { email: request.body.usuario.email}
+    })
+
+    if(!usuario) throw new Exception('No se encontro el usuario');
+
+    return response.json(usuario);
 }

@@ -24,6 +24,18 @@ export class Usuario extends BaseEntity {
     @Column({ default: 0 })
     creditos: number;
 
+    @Column({ nullable: true })
+    imagen: string;
+
+    @Column({ nullable: true })
+    descripcion: string;
+
+    @Column({ nullable: true })
+    pais: string;
+
+    @Column({ nullable: true })
+    edad: number;
+
     @OneToMany(() => Clase, clase => clase.profesor)
     clases: Clase[];
 

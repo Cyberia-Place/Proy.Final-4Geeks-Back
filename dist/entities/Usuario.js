@@ -59,6 +59,22 @@ var Usuario = /** @class */ (function (_super) {
         __metadata("design:type", Number)
     ], Usuario.prototype, "creditos");
     __decorate([
+        typeorm_1.Column({ nullable: true }),
+        __metadata("design:type", String)
+    ], Usuario.prototype, "imagen");
+    __decorate([
+        typeorm_1.Column({ nullable: true }),
+        __metadata("design:type", String)
+    ], Usuario.prototype, "descripcion");
+    __decorate([
+        typeorm_1.Column({ nullable: true }),
+        __metadata("design:type", String)
+    ], Usuario.prototype, "pais");
+    __decorate([
+        typeorm_1.Column({ nullable: true }),
+        __metadata("design:type", Number)
+    ], Usuario.prototype, "edad");
+    __decorate([
         typeorm_1.OneToMany(function () { return Clase_1.Clase; }, function (clase) { return clase.profesor; }),
         __metadata("design:type", Array)
     ], Usuario.prototype, "clases");
