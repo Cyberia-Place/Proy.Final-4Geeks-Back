@@ -4,7 +4,7 @@ import { Exception } from './utils'
 import { Usuario } from './entities/Usuario';
 import jwt from 'jsonwebtoken';
 
-export const registrarse = async (request: Request, response: Response): Promise<Response> => {
+export const signUp = async (request: Request, response: Response): Promise<Response> => {
     // Validar datos ingresados
     if(!request.body.email) throw new Exception('Falta la propiedad email en el body');
     if(!request.body.contrasenia) throw new Exception('Falta la propiedad contrasenia en el body');
@@ -30,19 +30,24 @@ export const registrarse = async (request: Request, response: Response): Promise
     return response.json(result);
 }
 
-export const logearse = async (request: Request, response: Response): Promise<Response> => {
+export const logIn = async (request: Request, response: Response): Promise<Response> => {
     // Validar datos ingresados
     if(!request.body.email) throw new Exception('Falta la propiedad email en el body');
     if(!request.body.contrasenia) throw new Exception('Falta la propiedad contrasenia en el body');
 
     // Verificar que existe un usuario con la password y el email
     let usuario = await getRepository(Usuario).findOne({
+        select: ['email', 'nombre', 'apellido'] ,
         where: { email: request.body.email, contrasenia: request.body.contrasenia }
     });
     if(!usuario) throw new Exception('Email o contraseña incorrectos');
     
     // Genero un token con la firma del usuario
-    let token = jwt.sign({ usuario }, process.env.JWT_KEY as string, { expiresIn: 60 * 60 });
+    let token = jwt.sign({ usuario }, process.env.JWT_KEY as string, { expiresIn: '1day' });
 
-    return response.json({ nombre: usuario.nombre, apellido: usuario.apellido, email: usuario.email, creditos: usuario.creditos , token});
+    let expires = new Date();
+    expires.setDate(expires.getDate() + 1);
+    expires.setHours(expires.getHours() - 3);
+
+    return response.json({usuario , token, expires});
 }

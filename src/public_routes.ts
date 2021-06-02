@@ -13,9 +13,9 @@ import * as actions from './actions';
 const router = Router();
 
 // Ruta para realizar el reguistro de un usuario
-router.post('/registrarse', safe(actions.registrarse));
+router.post('/signup', safe(actions.signUp));
 
 // Ruta para logearse
-router.post('/login', safe(actions.logearse));
+router.post('/login', safe(actions.logIn));
 
 export default router;

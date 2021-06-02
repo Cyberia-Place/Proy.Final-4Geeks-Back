@@ -39,12 +39,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-exports.logearse = exports.registrarse = void 0;
+exports.logIn = exports.signUp = void 0;
 var typeorm_1 = require("typeorm"); // getRepository"  traer una tabla de la base de datos asociada al objeto
 var utils_1 = require("./utils");
 var Usuario_1 = require("./entities/Usuario");
 var jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-var registrarse = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+var signUp = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
     var usuario, result;
     return __generator(this, function (_a) {
         switch (_a.label) {
@@ -79,9 +79,9 @@ var registrarse = function (request, response) { return __awaiter(void 0, void 0
         }
     });
 }); };
-exports.registrarse = registrarse;
-var logearse = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
-    var usuario, token;
+exports.signUp = signUp;
+var logIn = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var usuario, token, expires;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -91,15 +91,19 @@ var logearse = function (request, response) { return __awaiter(void 0, void 0, v
                 if (!request.body.contrasenia)
                     throw new utils_1.Exception('Falta la propiedad contrasenia en el body');
                 return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne({
+                        select: ['email', 'nombre', 'apellido'],
                         where: { email: request.body.email, contrasenia: request.body.contrasenia }
                     })];
             case 1:
                 usuario = _a.sent();
                 if (!usuario)
                     throw new utils_1.Exception('Email o contraseña incorrectos');
-                token = jsonwebtoken_1["default"].sign({ usuario: usuario }, process.env.JWT_KEY, { expiresIn: 60 * 60 });
-                return [2 /*return*/, response.json({ nombre: usuario.nombre, apellido: usuario.apellido, email: usuario.email, creditos: usuario.creditos, token: token })];
+                token = jsonwebtoken_1["default"].sign({ usuario: usuario }, process.env.JWT_KEY, { expiresIn: '1day' });
+                expires = new Date();
+                expires.setDate(expires.getDate() + 1);
+                expires.setHours(expires.getHours() - 3);
+                return [2 /*return*/, response.json({ usuario: usuario, token: token, expires: expires })];
         }
     });
 }); };
-exports.logearse = logearse;
+exports.logIn = logIn;
