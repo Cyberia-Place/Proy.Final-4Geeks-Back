@@ -37,7 +37,7 @@ export const logIn = async (request: Request, response: Response): Promise<Respo
 
     // Verificar que existe un usuario con la password y el email
     let usuario = await getRepository(Usuario).findOne({
-        select: ['email', 'nombre', 'apellido'] ,
+        select: ['id','email', 'nombre', 'apellido'] ,
         where: { email: request.body.email, contrasenia: request.body.contrasenia }
     });
     if(!usuario) throw new Exception('Email o contraseña incorrectos');
@@ -50,4 +50,8 @@ export const logIn = async (request: Request, response: Response): Promise<Respo
     expires.setHours(expires.getHours() - 3);
 
     return response.json({usuario , token, expires});
+}
+
+export const profile = async (request: Request, response: Response): Promise<Response> => {
+    return response.json(request.body);
 }

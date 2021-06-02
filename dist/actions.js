@@ -39,7 +39,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-exports.logIn = exports.signUp = void 0;
+exports.profile = exports.logIn = exports.signUp = void 0;
 var typeorm_1 = require("typeorm"); // getRepository"  traer una tabla de la base de datos asociada al objeto
 var utils_1 = require("./utils");
 var Usuario_1 = require("./entities/Usuario");
@@ -91,7 +91,7 @@ var logIn = function (request, response) { return __awaiter(void 0, void 0, void
                 if (!request.body.contrasenia)
                     throw new utils_1.Exception('Falta la propiedad contrasenia en el body');
                 return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne({
-                        select: ['email', 'nombre', 'apellido'],
+                        select: ['id', 'email', 'nombre', 'apellido'],
                         where: { email: request.body.email, contrasenia: request.body.contrasenia }
                     })];
             case 1:
@@ -107,3 +107,9 @@ var logIn = function (request, response) { return __awaiter(void 0, void 0, void
     });
 }); };
 exports.logIn = logIn;
+var profile = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    return __generator(this, function (_a) {
+        return [2 /*return*/, response.json(request.body)];
+    });
+}); };
+exports.profile = profile;
