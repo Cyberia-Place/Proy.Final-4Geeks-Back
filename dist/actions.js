@@ -112,7 +112,7 @@ var profile = function (request, response) { return __awaiter(void 0, void 0, vo
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0: return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne({
-                    select: ['id', 'email', 'nombre', 'apellido', 'imagen', 'pais', 'edad', 'descripcion'],
+                    select: ['id', 'email', 'nombre', 'apellido', 'imagen', 'pais', 'edad', 'descripcion', 'idioma', 'ocupacion'],
                     where: { id: request.body.usuario.id }
                 })];
             case 1:

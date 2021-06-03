@@ -54,7 +54,7 @@ export const logIn = async (request: Request, response: Response): Promise<Respo
 
 export const profile = async (request: Request, response: Response): Promise<Response> => {
     let usuario = await getRepository(Usuario).findOne({
-        select: ['id', 'email', 'nombre', 'apellido', 'imagen', 'pais', 'edad', 'descripcion'],
+        select: ['id', 'email', 'nombre', 'apellido', 'imagen', 'pais', 'edad', 'descripcion', 'idioma', 'ocupacion'],
         where: { id: request.body.usuario.id }
     });
 
