@@ -39,7 +39,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-exports.profile = exports.logIn = exports.signUp = void 0;
+exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
 var typeorm_1 = require("typeorm"); // getRepository"  traer una tabla de la base de datos asociada al objeto
 var utils_1 = require("./utils");
 var Usuario_1 = require("./entities/Usuario");
@@ -124,3 +124,47 @@ var profile = function (request, response) { return __awaiter(void 0, void 0, vo
     });
 }); };
 exports.profile = profile;
+var updateProfile = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                if (!request.body.nombre) return [3 /*break*/, 2];
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).update(request.body.usuario.id, { nombre: request.body.nombre })];
+            case 1:
+                _a.sent();
+                _a.label = 2;
+            case 2:
+                if (!request.body.apellido) return [3 /*break*/, 4];
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).update(request.body.usuario.id, { apellido: request.body.apellido })];
+            case 3:
+                _a.sent();
+                _a.label = 4;
+            case 4:
+                if (!request.body.imagen) return [3 /*break*/, 6];
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).update(request.body.usuario.id, { imagen: request.body.imagen })];
+            case 5:
+                _a.sent();
+                _a.label = 6;
+            case 6:
+                if (!request.body.pais) return [3 /*break*/, 8];
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).update(request.body.usuario.id, { pais: request.body.pais })];
+            case 7:
+                _a.sent();
+                _a.label = 8;
+            case 8:
+                if (!request.body.descripcion) return [3 /*break*/, 10];
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).update(request.body.usuario.id, { descripcion: request.body.descripcion })];
+            case 9:
+                _a.sent();
+                _a.label = 10;
+            case 10:
+                if (!request.body.edad) return [3 /*break*/, 12];
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).update(request.body.usuario.id, { edad: request.body.edad })];
+            case 11:
+                _a.sent();
+                _a.label = 12;
+            case 12: return [2 /*return*/, response.json({ msg: "usuario actualizado" })];
+        }
+    });
+}); };
+exports.updateProfile = updateProfile;

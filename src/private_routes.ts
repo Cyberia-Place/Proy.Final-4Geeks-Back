@@ -37,6 +37,10 @@ const auth = (request: Request, response: Response, next: NextFunction) => {
     next();
 }
 
-router.get('/profile', auth, safe(actions.profile));
+// Ruta para dar los datos del usuario logeado
+router.get('/user/profile', auth, safe(actions.profile));
+
+// Ruta para actualizar el perfil del usuario
+router.put('/user/update', auth, safe(actions.updateProfile));
 
 export default router;
