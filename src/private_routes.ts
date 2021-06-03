@@ -43,4 +43,7 @@ router.get('/user/profile', auth, safe(actions.profile));
 // Ruta para actualizar el perfil del usuario
 router.put('/user/update', auth, safe(actions.updateProfile));
 
+// Ruta para actualizar la contrasenia del usuario
+router.put('/user/updatePassword', auth, safe(actions.updatePassword));
+
 export default router;

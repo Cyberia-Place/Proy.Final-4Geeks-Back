@@ -55,7 +55,7 @@ export const logIn = async (request: Request, response: Response): Promise<Respo
 export const profile = async (request: Request, response: Response): Promise<Response> => {
     let usuario = await getRepository(Usuario).findOne({
         select: ['id', 'email', 'nombre', 'apellido', 'imagen', 'pais', 'edad', 'descripcion'],
-        where: { email: request.body.usuario.email }
+        where: { id: request.body.usuario.id }
     });
 
     if (!usuario) throw new Exception('No se encontro el usuario');
@@ -76,5 +76,26 @@ export const updateProfile = async (request: Request, response: Response): Promi
 
     if (request.body.edad) await getRepository(Usuario).update(request.body.usuario.id, { edad: request.body.edad });
 
+    if (request.body.idioma) await getRepository(Usuario).update(request.body.usuario.id, { idioma: request.body.idioma });
+
+    if (request.body.ocupacion) await getRepository(Usuario).update(request.body.usuario.id, { ocupacion: request.body.ocupacion });
+
     return response.json({ msg: "usuario actualizado" });
+}
+
+export const updatePassword = async (request: Request, response: Response): Promise<Response> => {
+    if (!request.body.contraseniaPrevia) throw new Exception('Falta la propiedad contrasenia previa en el body');
+    if (!request.body.contraseniaNueva) throw new Exception('Falta la propiedad contrasenia nueva en el body');
+
+    let usuario = await getRepository(Usuario).findOne({
+        where: {id: request.body.usuario.id, contrasenia: request.body.contraseniaPrevia}
+    });
+
+    if(!usuario) throw new Exception('Contraseña incorrecta');
+
+    usuario.contrasenia = request.body.contraseniaNueva;
+
+    let result = await getRepository(Usuario).save(usuario);
+
+    return response.json(result);
 }

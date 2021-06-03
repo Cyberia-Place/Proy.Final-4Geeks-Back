@@ -39,7 +39,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
+exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
 var typeorm_1 = require("typeorm"); // getRepository"  traer una tabla de la base de datos asociada al objeto
 var utils_1 = require("./utils");
 var Usuario_1 = require("./entities/Usuario");
@@ -113,7 +113,7 @@ var profile = function (request, response) { return __awaiter(void 0, void 0, vo
         switch (_a.label) {
             case 0: return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne({
                     select: ['id', 'email', 'nombre', 'apellido', 'imagen', 'pais', 'edad', 'descripcion'],
-                    where: { email: request.body.usuario.email }
+                    where: { id: request.body.usuario.id }
                 })];
             case 1:
                 usuario = _a.sent();
@@ -163,8 +163,45 @@ var updateProfile = function (request, response) { return __awaiter(void 0, void
             case 11:
                 _a.sent();
                 _a.label = 12;
-            case 12: return [2 /*return*/, response.json({ msg: "usuario actualizado" })];
+            case 12:
+                if (!request.body.idioma) return [3 /*break*/, 14];
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).update(request.body.usuario.id, { idioma: request.body.idioma })];
+            case 13:
+                _a.sent();
+                _a.label = 14;
+            case 14:
+                if (!request.body.ocupacion) return [3 /*break*/, 16];
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).update(request.body.usuario.id, { ocupacion: request.body.ocupacion })];
+            case 15:
+                _a.sent();
+                _a.label = 16;
+            case 16: return [2 /*return*/, response.json({ msg: "usuario actualizado" })];
         }
     });
 }); };
 exports.updateProfile = updateProfile;
+var updatePassword = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var usuario, result;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                if (!request.body.contraseniaPrevia)
+                    throw new utils_1.Exception('Falta la propiedad contrasenia previa en el body');
+                if (!request.body.contraseniaNueva)
+                    throw new utils_1.Exception('Falta la propiedad contrasenia nueva en el body');
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne({
+                        where: { id: request.body.usuario.id, contrasenia: request.body.contraseniaPrevia }
+                    })];
+            case 1:
+                usuario = _a.sent();
+                if (!usuario)
+                    throw new utils_1.Exception('Contraseña incorrecta');
+                usuario.contrasenia = request.body.contraseniaNueva;
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).save(usuario)];
+            case 2:
+                result = _a.sent();
+                return [2 /*return*/, response.json(result)];
+        }
+    });
+}); };
+exports.updatePassword = updatePassword;
