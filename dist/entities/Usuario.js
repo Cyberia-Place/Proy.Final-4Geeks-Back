@@ -51,10 +51,6 @@ var Usuario = /** @class */ (function (_super) {
         __metadata("design:type", String)
     ], Usuario.prototype, "nombre");
     __decorate([
-        typeorm_1.Column(),
-        __metadata("design:type", String)
-    ], Usuario.prototype, "apellido");
-    __decorate([
         typeorm_1.Column({ "default": 0 }),
         __metadata("design:type", Number)
     ], Usuario.prototype, "creditos");

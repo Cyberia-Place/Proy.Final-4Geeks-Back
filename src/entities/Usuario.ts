@@ -18,9 +18,6 @@ export class Usuario extends BaseEntity {
     @Column()
     nombre: string;
 
-    @Column()
-    apellido: string;
-
     @Column({ default: 0 })
     creditos: number;
 
