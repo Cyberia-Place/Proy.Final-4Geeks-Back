@@ -55,5 +55,10 @@ var auth = function (request, response, next) {
     Object.assign(request.body, decoded);
     next();
 };
-router.get('/profile', auth, utils_1.safe(actions.profile));
+// Ruta para dar los datos del usuario logeado
+router.get('/user/profile', auth, utils_1.safe(actions.profile));
+// Ruta para actualizar el perfil del usuario
+router.put('/user/update', auth, utils_1.safe(actions.updateProfile));
+// Ruta para actualizar la contrasenia del usuario
+router.put('/user/updatePassword', auth, utils_1.safe(actions.updatePassword));
 exports["default"] = router;
