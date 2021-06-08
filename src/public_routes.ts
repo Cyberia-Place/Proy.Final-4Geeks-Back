@@ -18,4 +18,10 @@ router.post('/signup', safe(actions.signUp));
 // Ruta para logearse
 router.post('/login', safe(actions.logIn));
 
+// Ruta para obtener las categorias
+router.get('/categories', safe(actions.getCategories));
+
+// Ruta para crear una categoria
+router.post('/categories', safe(actions.createCategory));
+
 export default router;

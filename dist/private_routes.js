@@ -61,4 +61,8 @@ router.get('/user/profile', auth, utils_1.safe(actions.profile));
 router.put('/user/update', auth, utils_1.safe(actions.updateProfile));
 // Ruta para actualizar la contrasenia del usuario
 router.put('/user/updatePassword', auth, utils_1.safe(actions.updatePassword));
+// Ruta para listar las clases
+router.get('/class', auth, utils_1.safe(actions.getClasses));
+// Ruta para crear una clase
+router.post('/class', auth, utils_1.safe(actions.createClass));
 exports["default"] = router;

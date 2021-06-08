@@ -1,9 +1,12 @@
 import { Request, Response } from 'express'
-import { getRepository } from 'typeorm'  // getRepository"  traer una tabla de la base de datos asociada al objeto
+import { getRepository, MoreThanOrEqual } from 'typeorm'  // getRepository"  traer una tabla de la base de datos asociada al objeto
 import { Exception } from './utils'
 import { Usuario } from './entities/Usuario';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import { Categoria } from './entities/Categoria';
+import { Clase } from './entities/Clase';
+import validator from 'validator';
 
 export const signUp = async (request: Request, response: Response): Promise<Response> => {
     // Validar datos ingresados
@@ -45,7 +48,7 @@ export const logIn = async (request: Request, response: Response): Promise<Respo
     if (!usuario) throw new Exception('No existe un usuario con el email ingresado');
 
     // Valido la contraseña del usuario
-    if(! await bcrypt.compare(request.body.contrasenia, usuario.contrasenia)) throw new Exception('Contraseña incorrecta');
+    if (! await bcrypt.compare(request.body.contrasenia, usuario.contrasenia)) throw new Exception('Contraseña incorrecta');
 
     // Genero un token con la firma del usuario
     let payLoad = {
@@ -100,7 +103,7 @@ export const updatePassword = async (request: Request, response: Response): Prom
 
     if (!usuario) throw new Exception('No existe usuario');
 
-    if(! await bcrypt.compare(request.body.contraseniaPrevia, usuario.contrasenia)) throw new Exception('Contraseña incorrecta');
+    if (! await bcrypt.compare(request.body.contraseniaPrevia, usuario.contrasenia)) throw new Exception('Contraseña incorrecta');
 
     // Hash de nueva contraseña
     let salt = await bcrypt.genSalt();
@@ -109,6 +112,83 @@ export const updatePassword = async (request: Request, response: Response): Prom
     // Actualizo contraseña
     usuario.contrasenia = hashedPassword;
     let result = await getRepository(Usuario).save(usuario);
+
+    return response.json(result);
+}
+
+export const getCategories = async (request: Request, response: Response): Promise<Response> => {
+    let categories = await getRepository(Categoria).find();
+
+    return response.json(categories);
+}
+
+export const createCategory = async (request: Request, response: Response): Promise<Response> => {
+    if (!request.body.nombre) throw new Exception('Falta la propiedad nombre de la categoria');
+    if (!request.body.descripcion) throw new Exception('Falta la propiedad descripcion de la categoria');
+
+    let category = await getRepository(Categoria).findOne({
+        where: { nombre: request.body.nombre }
+    });
+
+    if (category) throw new Exception('Ya hay una categoria con el nombre ingresado');
+
+    let newCat = getRepository(Categoria).create(request.body);
+    let result = await getRepository(Categoria).save(newCat);
+
+    return response.json(result);
+}
+
+export const getClasses = async (request: Request, response: Response): Promise<Response> => {
+    let result = await getRepository(Clase).find({
+        where: { fecha: MoreThanOrEqual(new Date()) },
+        relations: ['profesor']
+    });
+
+    return response.json(result);
+}
+
+export const createClass = async (request: Request, response: Response): Promise<Response> => {
+    // Validate data
+    if (!request.body.nombre) throw new Exception('Falta la propiedad nombre de la clase');
+    if (!request.body.fecha) throw new Exception('Falta la propiedad fecha de la clase');
+
+    // Validate Date
+    let timestamp = Date.parse(request.body.fecha);
+    if (isNaN(timestamp)) throw new Exception('Fecha invalida');
+
+    let fecha = new Date(timestamp);
+
+    if (fecha.getTime() < new Date().getTime()) throw new Exception('La Fecha ingresada debe ser posterior a la fecha actual');
+
+    // Validate duracion
+    if (!request.body.duracion) throw new Exception('Falta la propiedad duracion de la clase');
+    if (!validator.isNumeric(request.body.duracion)) throw new Exception('Duracion invalida');
+
+    // Validate categorias
+    if (!request.body.categorias) throw new Exception('Falta la propiedad categorias de la clase');
+    if (request.body.categorias.length === 0) throw new Exception('Se debe seleccionar al menos una categoria para la clase');
+
+    let categories: Categoria[] = [];
+    for(let i = 0; i < request.body.categorias.length; i++) {
+        let cat = await getRepository(Categoria).findOne({
+            where: { nombre: request.body.categorias[i] }
+        });
+        if(cat) categories.push(cat);
+    };
+
+    if (categories.length === 0) throw new Exception('Debe haber al menos una ctegoria valida');
+
+    let profesor = await getRepository(Usuario).findOne(request.body.usuario.id);
+
+    let newClass = getRepository(Clase).create({
+        nombre: request.body.nombre,
+        fecha: fecha,
+        duracion: request.body.duracion,
+        categorias: categories,
+        profesor: profesor
+    });
+
+    let result = await getRepository(Clase).save(newClass);
 
     return response.json(result);
 }

@@ -39,12 +39,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
+exports.createClass = exports.getClasses = exports.createCategory = exports.getCategories = exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
 var typeorm_1 = require("typeorm"); // getRepository"  traer una tabla de la base de datos asociada al objeto
 var utils_1 = require("./utils");
 var Usuario_1 = require("./entities/Usuario");
 var jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 var bcrypt_1 = __importDefault(require("bcrypt"));
+var Categoria_1 = require("./entities/Categoria");
+var Clase_1 = require("./entities/Clase");
+var validator_1 = __importDefault(require("validator"));
 var signUp = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
     var usuario, salt, hashedPassword, result;
     return __generator(this, function (_a) {
@@ -221,3 +224,119 @@ var updatePassword = function (request, response) { return __awaiter(void 0, voi
     });
 }); };
 exports.updatePassword = updatePassword;
+var getCategories = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var categories;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, typeorm_1.getRepository(Categoria_1.Categoria).find()];
+            case 1:
+                categories = _a.sent();
+                return [2 /*return*/, response.json(categories)];
+        }
+    });
+}); };
+exports.getCategories = getCategories;
+var createCategory = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var category, newCat, result;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                if (!request.body.nombre)
+                    throw new utils_1.Exception('Falta la propiedad nombre de la categoria');
+                if (!request.body.descripcion)
+                    throw new utils_1.Exception('Falta la propiedad descripcion de la categoria');
+                return [4 /*yield*/, typeorm_1.getRepository(Categoria_1.Categoria).findOne({
+                        where: { nombre: request.body.nombre }
+                    })];
+            case 1:
+                category = _a.sent();
+                if (category)
+                    throw new utils_1.Exception('Ya hay una categoria con el nombre ingresado');
+                newCat = typeorm_1.getRepository(Categoria_1.Categoria).create(request.body);
+                return [4 /*yield*/, typeorm_1.getRepository(Categoria_1.Categoria).save(newCat)];
+            case 2:
+                result = _a.sent();
+                return [2 /*return*/, response.json(result)];
+        }
+    });
+}); };
+exports.createCategory = createCategory;
+var getClasses = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var result;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).find({
+                    where: { fecha: typeorm_1.MoreThanOrEqual(new Date()) },
+                    relations: ['profesor']
+                })];
+            case 1:
+                result = _a.sent();
+                return [2 /*return*/, response.json(result)];
+        }
+    });
+}); };
+exports.getClasses = getClasses;
+var createClass = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var timestamp, fecha, categories, i, cat, profesor, newClass, result;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                // Validate data
+                if (!request.body.nombre)
+                    throw new utils_1.Exception('Falta la propiedad nombre de la clase');
+                if (!request.body.fecha)
+                    throw new utils_1.Exception('Falta la propiedad fecha de la clase');
+                timestamp = Date.parse(request.body.fecha);
+                if (isNaN(timestamp))
+                    throw new utils_1.Exception('Fecha invalida');
+                fecha = new Date(timestamp);
+                if (fecha.getTime() < new Date().getTime())
+                    throw new utils_1.Exception('La Fecha ingresada debe ser posterior a la fecha actual');
+                // Validate duracion
+                if (!request.body.duracion)
+                    throw new utils_1.Exception('Falta la propiedad duracion de la clase');
+                if (!validator_1["default"].isNumeric(request.body.duracion))
+                    throw new utils_1.Exception('Duracion invalida');
+                // Validate categorias
+                if (!request.body.categorias)
+                    throw new utils_1.Exception('Falta la propiedad categorias de la clase');
+                if (request.body.categorias.length === 0)
+                    throw new utils_1.Exception('Se debe seleccionar al menos una categoria para la clase');
+                categories = [];
+                i = 0;
+                _a.label = 1;
+            case 1:
+                if (!(i < request.body.categorias.length)) return [3 /*break*/, 4];
+                return [4 /*yield*/, typeorm_1.getRepository(Categoria_1.Categoria).findOne({
+                        where: { nombre: request.body.categorias[i] }
+                    })];
+            case 2:
+                cat = _a.sent();
+                if (cat)
+                    categories.push(cat);
+                _a.label = 3;
+            case 3:
+                i++;
+                return [3 /*break*/, 1];
+            case 4:
+                ;
+                if (categories.length === 0)
+                    throw new utils_1.Exception('Debe haber al menos una ctegoria valida');
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne(request.body.usuario.id)];
+            case 5:
+                profesor = _a.sent();
+                newClass = typeorm_1.getRepository(Clase_1.Clase).create({
+                    nombre: request.body.nombre,
+                    fecha: fecha,
+                    duracion: request.body.duracion,
+                    categorias: categories,
+                    profesor: profesor
+                });
+                return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).save(newClass)];
+            case 6:
+                result = _a.sent();
+                return [2 /*return*/, response.json(result)];
+        }
+    });
+}); };
+exports.createClass = createClass;
