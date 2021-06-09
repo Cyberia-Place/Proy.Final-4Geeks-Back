@@ -48,6 +48,7 @@ var bcrypt_1 = __importDefault(require("bcrypt"));
 var Categoria_1 = require("./entities/Categoria");
 var Clase_1 = require("./entities/Clase");
 var validator_1 = __importDefault(require("validator"));
+var moment_1 = __importDefault(require("moment"));
 var signUp = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
     var usuario, salt, hashedPassword, result;
     return __generator(this, function (_a) {
@@ -56,6 +57,8 @@ var signUp = function (request, response) { return __awaiter(void 0, void 0, voi
                 // Validar datos ingresados
                 if (!request.body.email)
                     throw new utils_1.Exception('Falta la propiedad email en el body');
+                if (!validator_1["default"].isEmail(request.body.email))
+                    throw new utils_1.Exception('Email invalido');
                 if (!request.body.contrasenia)
                     throw new utils_1.Exception('Falta la propiedad contrasenia en el body');
                 if (!request.body.nombre)
@@ -95,6 +98,8 @@ var logIn = function (request, response) { return __awaiter(void 0, void 0, void
                 // Validar datos ingresados
                 if (!request.body.email)
                     throw new utils_1.Exception('Falta la propiedad email en el body');
+                if (!validator_1["default"].isEmail(request.body.email))
+                    throw new utils_1.Exception('Email invalido');
                 if (!request.body.contrasenia)
                     throw new utils_1.Exception('Falta la propiedad contrasenia en el body');
                 return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne({
@@ -277,7 +282,7 @@ var getClasses = function (request, response) { return __awaiter(void 0, void 0,
 }); };
 exports.getClasses = getClasses;
 var createClass = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
-    var timestamp, fecha, categories, i, cat, profesor, newClass, result;
+    var fecha, formatTime, momentInicio, momentFin, hora_inicio, hora_fin, categories, profesor, clases, newClass, result;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -286,29 +291,86 @@ var createClass = function (request, response) { return __awaiter(void 0, void 0
                     throw new utils_1.Exception('Falta la propiedad nombre de la clase');
                 if (!request.body.fecha)
                     throw new utils_1.Exception('Falta la propiedad fecha de la clase');
-                timestamp = Date.parse(request.body.fecha);
-                if (isNaN(timestamp))
-                    throw new utils_1.Exception('Fecha invalida');
-                fecha = new Date(timestamp);
-                if (fecha.getTime() < new Date().getTime())
+                if (!request.body.hora_inicio)
+                    throw new utils_1.Exception('Falta la hora de inicio de la clase');
+                if (!request.body.hora_fin)
+                    throw new utils_1.Exception('Falta la hora de finalizacion de la clase');
+                // Validate Date
+                if (!moment_1["default"](request.body.fecha, 'YYYY-MM-DD').isValid())
+                    throw new utils_1.Exception('Fecha invalida (YYYY-MM-DD)');
+                if (!moment_1["default"](request.body.fecha).isAfter())
                     throw new utils_1.Exception('La Fecha ingresada debe ser posterior a la fecha actual');
-                // Validate duracion
-                if (!request.body.duracion)
-                    throw new utils_1.Exception('Falta la propiedad duracion de la clase');
-                if (!validator_1["default"].isNumeric(request.body.duracion))
-                    throw new utils_1.Exception('Duracion invalida');
+                fecha = moment_1["default"](request.body.fecha, 'YYYY-MM-DD').format('YYYY-MM-DD');
+                formatTime = 'LT';
+                if (!moment_1["default"](request.body.hora_inicio, formatTime).isValid())
+                    throw new utils_1.Exception('Hora de inicio invalida');
+                if (!moment_1["default"](request.body.hora_fin, formatTime).isValid())
+                    throw new utils_1.Exception('Hora de finalizacion invalida');
+                momentInicio = moment_1["default"](request.body.hora_inicio, formatTime);
+                momentFin = moment_1["default"](request.body.hora_fin, formatTime);
+                if (!momentFin.isAfter(momentInicio))
+                    throw new utils_1.Exception('La hora de finalizacion debe ser posterior a la de inicio');
+                hora_inicio = momentInicio.format(formatTime);
+                hora_fin = momentFin.format(formatTime);
                 // Validate categorias
                 if (!request.body.categorias)
                     throw new utils_1.Exception('Falta la propiedad categorias de la clase');
                 if (request.body.categorias.length === 0)
                     throw new utils_1.Exception('Se debe seleccionar al menos una categoria para la clase');
+                return [4 /*yield*/, getCategoriesByNames(request.body.categorias)];
+            case 1:
+                categories = _a.sent();
+                if (categories.length === 0)
+                    throw new utils_1.Exception('Debe haber al menos una categoria valida');
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne(request.body.usuario.id)];
+            case 2:
+                profesor = _a.sent();
+                return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).find({
+                        where: { fecha: fecha, profesor: profesor }
+                    })];
+            case 3:
+                clases = _a.sent();
+                // Vlaidate that the teacher does not have a class this dates
+                if (clases) {
+                    clases.forEach(function (clase) {
+                        var beforeTime = moment_1["default"](clase.hora_inicio, formatTime);
+                        var afterTime = moment_1["default"](clase.hora_fin, formatTime);
+                        if (momentInicio.isSame(beforeTime) || momentInicio.isSame(afterTime) || momentInicio.isBetween(beforeTime, afterTime)) {
+                            throw new utils_1.Exception("Ya hay una clase en la fecha de inicio ingresada: " + clase.id + " - " + clase.nombre);
+                        }
+                        if (momentFin.isSame(beforeTime) || momentFin.isSame(afterTime) || momentFin.isBetween(beforeTime, afterTime)) {
+                            throw new utils_1.Exception("Ya hay una clase en la fecha de finalizacion ingresada: " + clase.id + " - " + clase.nombre);
+                        }
+                    });
+                }
+                newClass = typeorm_1.getRepository(Clase_1.Clase).create({
+                    nombre: request.body.nombre,
+                    fecha: fecha,
+                    hora_inicio: hora_inicio,
+                    hora_fin: hora_fin,
+                    categorias: categories,
+                    profesor: profesor
+                });
+                return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).save(newClass)];
+            case 4:
+                result = _a.sent();
+                return [2 /*return*/, response.json(result)];
+        }
+    });
+}); };
+exports.createClass = createClass;
+var getCategoriesByNames = function (array) { return __awaiter(void 0, void 0, void 0, function () {
+    var categories, i, cat;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
                 categories = [];
                 i = 0;
                 _a.label = 1;
             case 1:
-                if (!(i < request.body.categorias.length)) return [3 /*break*/, 4];
+                if (!(i < array.length)) return [3 /*break*/, 4];
                 return [4 /*yield*/, typeorm_1.getRepository(Categoria_1.Categoria).findOne({
-                        where: { nombre: request.body.categorias[i] }
+                        where: { nombre: array[i] }
                     })];
             case 2:
                 cat = _a.sent();
@@ -320,23 +382,7 @@ var createClass = function (request, response) { return __awaiter(void 0, void 0
                 return [3 /*break*/, 1];
             case 4:
                 ;
-                if (categories.length === 0)
-                    throw new utils_1.Exception('Debe haber al menos una ctegoria valida');
-                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne(request.body.usuario.id)];
-            case 5:
-                profesor = _a.sent();
-                newClass = typeorm_1.getRepository(Clase_1.Clase).create({
-                    nombre: request.body.nombre,
-                    fecha: fecha,
-                    duracion: request.body.duracion,
-                    categorias: categories,
-                    profesor: profesor
-                });
-                return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).save(newClass)];
-            case 6:
-                result = _a.sent();
-                return [2 /*return*/, response.json(result)];
+                return [2 /*return*/, categories];
         }
     });
 }); };
-exports.createClass = createClass;

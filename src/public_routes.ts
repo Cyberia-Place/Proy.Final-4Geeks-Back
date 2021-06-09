@@ -22,6 +22,6 @@ router.post('/login', safe(actions.logIn));
 router.get('/categories', safe(actions.getCategories));
 
 // Ruta para crear una categoria
-router.post('/categories', safe(actions.createCategory));
+router.post('/category', safe(actions.createCategory));
 
 export default router;

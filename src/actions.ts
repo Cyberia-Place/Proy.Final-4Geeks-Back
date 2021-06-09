@@ -7,10 +7,12 @@ import bcrypt from 'bcrypt';
 import { Categoria } from './entities/Categoria';
 import { Clase } from './entities/Clase';
 import validator from 'validator';
+import moment from 'moment';
 
 export const signUp = async (request: Request, response: Response): Promise<Response> => {
     // Validar datos ingresados
     if (!request.body.email) throw new Exception('Falta la propiedad email en el body');
+    if (!validator.isEmail(request.body.email)) throw new Exception('Email invalido');
     if (!request.body.contrasenia) throw new Exception('Falta la propiedad contrasenia en el body');
     if (!request.body.nombre) throw new Exception('Falta la propiedad nombre en el body');
 
@@ -39,6 +41,7 @@ export const signUp = async (request: Request, response: Response): Promise<Resp
 export const logIn = async (request: Request, response: Response): Promise<Response> => {
     // Validar datos ingresados
     if (!request.body.email) throw new Exception('Falta la propiedad email en el body');
+    if (!validator.isEmail(request.body.email)) throw new Exception('Email invalido');
     if (!request.body.contrasenia) throw new Exception('Falta la propiedad contrasenia en el body');
 
     // Verificar que existe un usuario con la password y el email
@@ -151,39 +154,64 @@ export const createClass = async (request: Request, response: Response): Promise
     // Validate data
     if (!request.body.nombre) throw new Exception('Falta la propiedad nombre de la clase');
     if (!request.body.fecha) throw new Exception('Falta la propiedad fecha de la clase');
+    if (!request.body.hora_inicio) throw new Exception('Falta la hora de inicio de la clase');
+    if (!request.body.hora_fin) throw new Exception('Falta la hora de finalizacion de la clase');
 
     // Validate Date
-    let timestamp = Date.parse(request.body.fecha);
-    if (isNaN(timestamp)) throw new Exception('Fecha invalida');
+    if (!moment(request.body.fecha, 'YYYY-MM-DD').isValid()) throw new Exception('Fecha invalida (YYYY-MM-DD)');
+    if (!moment(request.body.fecha).isAfter()) throw new Exception('La Fecha ingresada debe ser posterior a la fecha actual');
 
-    let fecha = new Date(timestamp);
+    let fecha = moment(request.body.fecha, 'YYYY-MM-DD').format('YYYY-MM-DD');
 
-    if (fecha.getTime() < new Date().getTime()) throw new Exception('La Fecha ingresada debe ser posterior a la fecha actual');
+    // Validate starting and ending time
+    let formatTime = 'LT';
+    if (!moment(request.body.hora_inicio, formatTime).isValid()) throw new Exception('Hora de inicio invalida');
+    if (!moment(request.body.hora_fin, formatTime).isValid()) throw new Exception('Hora de finalizacion invalida');
 
-    // Validate duracion
-    if (!request.body.duracion) throw new Exception('Falta la propiedad duracion de la clase');
-    if (!validator.isNumeric(request.body.duracion)) throw new Exception('Duracion invalida');
+    let momentInicio = moment(request.body.hora_inicio, formatTime);
+    let momentFin = moment(request.body.hora_fin, formatTime);
+    if (!momentFin.isAfter(momentInicio)) throw new Exception('La hora de finalizacion debe ser posterior a la de inicio');
+
+    let hora_inicio = momentInicio.format(formatTime);
+    let hora_fin = momentFin.format(formatTime);
 
     // Validate categorias
     if (!request.body.categorias) throw new Exception('Falta la propiedad categorias de la clase');
     if (request.body.categorias.length === 0) throw new Exception('Se debe seleccionar al menos una categoria para la clase');
 
-    let categories: Categoria[] = [];
-    for(let i = 0; i < request.body.categorias.length; i++) {
-        let cat = await getRepository(Categoria).findOne({
-            where: { nombre: request.body.categorias[i] }
-        });
-        if(cat) categories.push(cat);
-    };
+    // Get categories from db
+    let categories = await getCategoriesByNames(request.body.categorias);
 
-    if (categories.length === 0) throw new Exception('Debe haber al menos una ctegoria valida');
+    if (categories.length === 0) throw new Exception('Debe haber al menos una categoria valida');
 
     let profesor = await getRepository(Usuario).findOne(request.body.usuario.id);
 
+    let clases = await getRepository(Clase).find({
+        where: { fecha: fecha, profesor: profesor }
+    });
+
+    // Vlaidate that the teacher does not have a class this dates
+    if (clases) {
+        clases.forEach(clase => {
+            let beforeTime = moment(clase.hora_inicio, formatTime);
+            let afterTime = moment(clase.hora_fin, formatTime);
+
+            if (momentInicio.isSame(beforeTime) || momentInicio.isSame(afterTime) || momentInicio.isBetween(beforeTime, afterTime)) {
+                throw new Exception(`Ya hay una clase en la fecha de inicio ingresada: ${clase.id} - ${clase.nombre}`);
+            }
+
+            if (momentFin.isSame(beforeTime) || momentFin.isSame(afterTime) || momentFin.isBetween(beforeTime, afterTime)) {
+                throw new Exception(`Ya hay una clase en la fecha de finalizacion ingresada: ${clase.id} - ${clase.nombre}`);
+            }
+        });
+    }
+
+    // Create new class
     let newClass = getRepository(Clase).create({
         nombre: request.body.nombre,
         fecha: fecha,
-        duracion: request.body.duracion,
+        hora_inicio,
+        hora_fin,
         categorias: categories,
         profesor: profesor
     });
@@ -191,4 +219,17 @@ export const createClass = async (request: Request, response: Response): Promise
     let result = await getRepository(Clase).save(newClass);
 
     return response.json(result);
+}
+
+const getCategoriesByNames = async (array: string) => {
+    let categories: Categoria[] = [];
+
+    for (let i = 0; i < array.length; i++) {
+        let cat = await getRepository(Categoria).findOne({
+            where: { nombre: array[i] }
+        });
+        if (cat) categories.push(cat);
+    };
+
+    return categories
 }

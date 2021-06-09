@@ -43,13 +43,17 @@ var Clase = /** @class */ (function (_super) {
         __metadata("design:type", String)
     ], Clase.prototype, "nombre");
     __decorate([
-        typeorm_1.Column(),
-        __metadata("design:type", Date)
+        typeorm_1.Column({ type: 'date' }),
+        __metadata("design:type", String)
     ], Clase.prototype, "fecha");
     __decorate([
-        typeorm_1.Column(),
-        __metadata("design:type", Number)
-    ], Clase.prototype, "duracion");
+        typeorm_1.Column({ type: 'time' }),
+        __metadata("design:type", String)
+    ], Clase.prototype, "hora_inicio");
+    __decorate([
+        typeorm_1.Column({ type: 'time' }),
+        __metadata("design:type", String)
+    ], Clase.prototype, "hora_fin");
     __decorate([
         typeorm_1.ManyToOne(function () { return Usuario_1.Usuario; }, function (usuario) { return usuario.clases; }),
         __metadata("design:type", Usuario_1.Usuario)
