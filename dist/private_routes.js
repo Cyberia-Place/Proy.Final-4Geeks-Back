@@ -65,4 +65,6 @@ router.put('/user/updatePassword', auth, utils_1.safe(actions.updatePassword));
 router.get('/class', auth, utils_1.safe(actions.getClasses));
 // Ruta para crear una clase
 router.post('/class', auth, utils_1.safe(actions.createClass));
+// Ruta para inscribirse a una clase
+router.post('/enroll', auth, utils_1.safe(actions.enroll));
 exports["default"] = router;

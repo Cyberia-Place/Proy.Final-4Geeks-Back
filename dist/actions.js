@@ -39,7 +39,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-exports.createClass = exports.getClasses = exports.createCategory = exports.getCategories = exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
+exports.enroll = exports.createClass = exports.getClasses = exports.createCategory = exports.getCategories = exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
 var typeorm_1 = require("typeorm"); // getRepository"  traer una tabla de la base de datos asociada al objeto
 var utils_1 = require("./utils");
 var Usuario_1 = require("./entities/Usuario");
@@ -49,6 +49,7 @@ var Categoria_1 = require("./entities/Categoria");
 var Clase_1 = require("./entities/Clase");
 var validator_1 = __importDefault(require("validator"));
 var moment_1 = __importDefault(require("moment"));
+var Inscripcion_1 = require("./entities/Inscripcion");
 var signUp = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
     var usuario, salt, hashedPassword, result;
     return __generator(this, function (_a) {
@@ -117,7 +118,8 @@ var logIn = function (request, response) { return __awaiter(void 0, void 0, void
                 payLoad = {
                     id: usuario.id,
                     nombre: usuario.nombre,
-                    email: usuario.email
+                    email: usuario.email,
+                    imagen: usuario.imagen
                 };
                 token = jsonwebtoken_1["default"].sign({ usuario: payLoad }, process.env.JWT_KEY, { expiresIn: '1day' });
                 expires = new Date();
@@ -386,3 +388,64 @@ var getCategoriesByNames = function (array) { return __awaiter(void 0, void 0, v
         }
     });
 }); };
+var enroll = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var clase, estudiante, inscripcion, inscripciones, formatTime, momentInicio, momentFin, newEnroll, result;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                // Validate data
+                if (!request.body.clase_id)
+                    throw new utils_1.Exception('Falta el id de la clase a inscribirse');
+                return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).findOne(request.body.clase_id, {
+                        relations: ['profesor']
+                    })];
+            case 1:
+                clase = _a.sent();
+                if (!clase)
+                    throw new utils_1.Exception('No existe ninguna clase con el id ingresado');
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne(request.body.usuario.id)];
+            case 2:
+                estudiante = _a.sent();
+                if (!estudiante)
+                    throw new utils_1.Exception('No se encontro el usuario');
+                if (clase.profesor.id === estudiante.id)
+                    throw new utils_1.Exception('No puedes inscribirte a tu propia clase');
+                return [4 /*yield*/, typeorm_1.getRepository(Inscripcion_1.Inscripcion).findOne({
+                        where: { usuario: estudiante, clase: clase }
+                    })];
+            case 3:
+                inscripcion = _a.sent();
+                if (inscripcion)
+                    throw new utils_1.Exception('Ya te encuentras inscripto a esta clase');
+                return [4 /*yield*/, typeorm_1.getRepository(Inscripcion_1.Inscripcion).createQueryBuilder("inscripcion")
+                        .innerJoinAndSelect("inscripcion.clase", "clase")
+                        .where("inscripcion.usuario = :usuario", { usuario: estudiante.id })
+                        .andWhere("clase.fecha = :fecha", { fecha: clase.fecha })
+                        .getMany()];
+            case 4:
+                inscripciones = _a.sent();
+                formatTime = 'LT';
+                momentInicio = moment_1["default"](clase.hora_inicio, formatTime);
+                momentFin = moment_1["default"](clase.hora_fin, formatTime);
+                inscripciones.forEach(function (element) {
+                    var beforeTime = moment_1["default"](element.clase.hora_inicio, formatTime);
+                    var afterTime = moment_1["default"](element.clase.hora_fin, formatTime);
+                    if (momentInicio.isSame(beforeTime) || momentInicio.isSame(afterTime) || momentInicio.isBetween(beforeTime, afterTime)) {
+                        throw new utils_1.Exception('Ya te encuentras inscripto en una clase');
+                    }
+                    if (momentFin.isSame(beforeTime) || momentFin.isSame(afterTime) || momentFin.isBetween(beforeTime, afterTime)) {
+                        throw new utils_1.Exception('Ya te encuentras inscripto en una clase');
+                    }
+                });
+                newEnroll = typeorm_1.getRepository(Inscripcion_1.Inscripcion).create({
+                    clase: clase,
+                    usuario: estudiante
+                });
+                return [4 /*yield*/, typeorm_1.getRepository(Inscripcion_1.Inscripcion).save(newEnroll)];
+            case 5:
+                result = _a.sent();
+                return [2 /*return*/, response.json(result)];
+        }
+    });
+}); };
+exports.enroll = enroll;

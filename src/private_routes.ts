@@ -52,4 +52,7 @@ router.get('/class', auth, safe(actions.getClasses));
 // Ruta para crear una clase
 router.post('/class', auth, safe(actions.createClass));
 
+// Ruta para inscribirse a una clase
+router.post('/enroll', auth, safe(actions.enroll));
+
 export default router;

@@ -8,6 +8,7 @@ import { Categoria } from './entities/Categoria';
 import { Clase } from './entities/Clase';
 import validator from 'validator';
 import moment from 'moment';
+import { Inscripcion } from './entities/Inscripcion';
 
 export const signUp = async (request: Request, response: Response): Promise<Response> => {
     // Validar datos ingresados
@@ -57,7 +58,8 @@ export const logIn = async (request: Request, response: Response): Promise<Respo
     let payLoad = {
         id: usuario.id,
         nombre: usuario.nombre,
-        email: usuario.email
+        email: usuario.email,
+        imagen: usuario.imagen
     }
     let token = jwt.sign({ usuario: payLoad }, process.env.JWT_KEY as string, { expiresIn: '1day' });
 
@@ -232,4 +234,59 @@ const getCategoriesByNames = async (array: string) => {
     };
 
     return categories
+}
+
+export const enroll = async (request: Request, response: Response): Promise<Response> => {
+    // Validate data
+    if (!request.body.clase_id) throw new Exception('Falta el id de la clase a inscribirse');
+
+    // Validate that the class exists
+    let clase = await getRepository(Clase).findOne(request.body.clase_id, {
+        relations: ['profesor']
+    });
+    if (!clase) throw new Exception('No existe ninguna clase con el id ingresado');
+
+    let estudiante = await getRepository(Usuario).findOne(request.body.usuario.id);
+
+    if (!estudiante) throw new Exception('No se encontro el usuario');
+
+    if (clase.profesor.id === estudiante.id) throw new Exception('No puedes inscribirte a tu propia clase');
+
+    let inscripcion = await getRepository(Inscripcion).findOne({
+        where: { usuario: estudiante, clase: clase }
+    });
+
+    if (inscripcion) throw new Exception('Ya te encuentras inscripto a esta clase');
+
+    let inscripciones = await getRepository(Inscripcion).createQueryBuilder("inscripcion")
+        .innerJoinAndSelect("inscripcion.clase", "clase")
+        .where("inscripcion.usuario = :usuario", { usuario: estudiante.id })
+        .andWhere("clase.fecha = :fecha", { fecha: clase.fecha })
+        .getMany();
+
+    let formatTime = 'LT';
+    let momentInicio = moment(clase.hora_inicio, formatTime);
+    let momentFin = moment(clase.hora_fin, formatTime);
+
+    inscripciones.forEach(element => {
+        let beforeTime = moment(element.clase.hora_inicio, formatTime);
+        let afterTime = moment(element.clase.hora_fin, formatTime);
+
+        if (momentInicio.isSame(beforeTime) || momentInicio.isSame(afterTime) || momentInicio.isBetween(beforeTime, afterTime)) {
+            throw new Exception('Ya te encuentras inscripto en una clase');
+        }
+
+        if (momentFin.isSame(beforeTime) || momentFin.isSame(afterTime) || momentFin.isBetween(beforeTime, afterTime)) {
+            throw new Exception('Ya te encuentras inscripto en una clase');
+        }
+    });
+    
+    let newEnroll = getRepository(Inscripcion).create({
+        clase: clase,
+        usuario: estudiante
+    });
+
+    let result = await getRepository(Inscripcion).save(newEnroll);
+
+    return response.json(result);
 }
