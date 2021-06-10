@@ -47,7 +47,13 @@ router.put('/user/update', auth, safe(actions.updateProfile));
 router.put('/user/updatePassword', auth, safe(actions.updatePassword));
 
 // Ruta para listar las clases
-router.get('/class', auth, safe(actions.getClasses));
+router.get('/clases', auth, safe(actions.getClasses));
+
+// Ruta para listar las clases filtradas
+router.get('/clases/filtered', auth, safe(actions.getClassesFiltered));
+
+// Ruta para tarer datos de una clase
+router.get('/class', auth, safe(actions.getClass));
 
 // Ruta para crear una clase
 router.post('/class', auth, safe(actions.createClass));

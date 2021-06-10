@@ -1,5 +1,5 @@
 import { Request, Response } from 'express'
-import { getRepository, MoreThanOrEqual } from 'typeorm'  // getRepository"  traer una tabla de la base de datos asociada al objeto
+import { getRepository, MoreThanOrEqual, MoreThan } from 'typeorm'  // getRepository"  traer una tabla de la base de datos asociada al objeto
 import { Exception } from './utils'
 import { Usuario } from './entities/Usuario';
 import jwt from 'jsonwebtoken';
@@ -9,6 +9,9 @@ import { Clase } from './entities/Clase';
 import validator from 'validator';
 import moment from 'moment';
 import { Inscripcion } from './entities/Inscripcion';
+
+let formatTime = 'LT';
+let formatDate = 'YYYY-MM-DD';
 
 export const signUp = async (request: Request, response: Response): Promise<Response> => {
     // Validar datos ingresados
@@ -144,10 +147,73 @@ export const createCategory = async (request: Request, response: Response): Prom
 }
 
 export const getClasses = async (request: Request, response: Response): Promise<Response> => {
-    let result = await getRepository(Clase).find({
-        where: { fecha: MoreThanOrEqual(new Date()) },
-        relations: ['profesor']
+    let clases = await getRepository(Clase).find({
+        where: { fecha: MoreThan(moment().format(formatDate)) },
+        relations: ['profesor', 'categorias']
     });
+
+    let result = [];
+    for (let i = 0; i < clases.length; i++) {
+        result.push({
+            id: clases[i].id,
+            hora_inicio: clases[i].hora_inicio,
+            hora_fin: clases[i].hora_fin,
+            fecha: clases[i].fecha,
+            nombre: clases[i].nombre,
+            categorias: clases[i].categorias,
+            profesor: {
+                id: clases[i].profesor.id,
+                email: clases[i].profesor.email,
+                nombre: clases[i].profesor.nombre,
+                imagen: clases[i].profesor.imagen
+            }
+        });
+    }
+
+    return response.json(result);
+}
+
+export const getClassesFiltered = async (request: Request, response: Response): Promise<Response> => {
+    let compareDay = moment().add(1, 'day');
+    if (request.query.week_day && typeof request.query.week_day == 'string') {
+        let week_day = parseInt(request.query.week_day);
+        if (moment().isoWeekday() <= week_day) {
+            compareDay = moment().isoWeekday(week_day);
+        } else {
+            compareDay = moment().add(1, 'weeks').isoWeekday(week_day);
+        }
+    }
+
+    let where = { fecha: compareDay.format(formatDate) };
+
+    let hora_inicio = moment();
+    if (request.query.hora_inicio && typeof request.query.hora_inicio === 'string' && moment(request.query.hora_inicio, formatTime).isValid()) {
+        hora_inicio = moment(request.query.hora_inicio, formatTime);
+        Object.assign(where, { hora_inicio: MoreThan(hora_inicio.format(formatTime)) });
+    }
+
+    let clases = await getRepository(Clase).find({
+        where: where,
+        relations: ['profesor', 'categorias']
+    });
+
+    let result = [];
+    for (let i = 0; i < clases.length; i++) {
+        result.push({
+            id: clases[i].id,
+            hora_inicio: clases[i].hora_inicio,
+            hora_fin: clases[i].hora_fin,
+            fecha: clases[i].fecha,
+            nombre: clases[i].nombre,
+            categorias: clases[i].categorias,
+            profesor: {
+                id: clases[i].profesor.id,
+                email: clases[i].profesor.email,
+                nombre: clases[i].profesor.nombre,
+                imagen: clases[i].profesor.imagen
+            }
+        });
+    }
 
     return response.json(result);
 }
@@ -160,13 +226,12 @@ export const createClass = async (request: Request, response: Response): Promise
     if (!request.body.hora_fin) throw new Exception('Falta la hora de finalizacion de la clase');
 
     // Validate Date
-    if (!moment(request.body.fecha, 'YYYY-MM-DD').isValid()) throw new Exception('Fecha invalida (YYYY-MM-DD)');
+    if (!moment(request.body.fecha, formatDate).isValid()) throw new Exception('Fecha invalida (YYYY-MM-DD)');
     if (!moment(request.body.fecha).isAfter()) throw new Exception('La Fecha ingresada debe ser posterior a la fecha actual');
 
-    let fecha = moment(request.body.fecha, 'YYYY-MM-DD').format('YYYY-MM-DD');
+    let fecha = moment(request.body.fecha, formatDate).format(formatDate);
 
     // Validate starting and ending time
-    let formatTime = 'LT';
     if (!moment(request.body.hora_inicio, formatTime).isValid()) throw new Exception('Hora de inicio invalida');
     if (!moment(request.body.hora_fin, formatTime).isValid()) throw new Exception('Hora de finalizacion invalida');
 
@@ -204,6 +269,10 @@ export const createClass = async (request: Request, response: Response): Promise
 
             if (momentFin.isSame(beforeTime) || momentFin.isSame(afterTime) || momentFin.isBetween(beforeTime, afterTime)) {
                 throw new Exception(`Ya hay una clase en la fecha de finalizacion ingresada: ${clase.id} - ${clase.nombre}`);
+            }
+
+            if (beforeTime.isBetween(momentInicio, momentFin) || afterTime.isBetween(momentInicio, momentFin)) {
+                throw new Exception(`Ya hay una clase entre las fechas ingresadas: ${clase.id} - ${clase.nombre}`);
             }
         });
     }
@@ -246,6 +315,8 @@ export const enroll = async (request: Request, response: Response): Promise<Resp
     });
     if (!clase) throw new Exception('No existe ninguna clase con el id ingresado');
 
+    if (!moment(clase.fecha).isAfter()) throw new Exception('La clase ya ha terminado');
+
     let estudiante = await getRepository(Usuario).findOne(request.body.usuario.id);
 
     if (!estudiante) throw new Exception('No se encontro el usuario');
@@ -264,7 +335,6 @@ export const enroll = async (request: Request, response: Response): Promise<Resp
         .andWhere("clase.fecha = :fecha", { fecha: clase.fecha })
         .getMany();
 
-    let formatTime = 'LT';
     let momentInicio = moment(clase.hora_inicio, formatTime);
     let momentFin = moment(clase.hora_fin, formatTime);
 
@@ -273,14 +343,18 @@ export const enroll = async (request: Request, response: Response): Promise<Resp
         let afterTime = moment(element.clase.hora_fin, formatTime);
 
         if (momentInicio.isSame(beforeTime) || momentInicio.isSame(afterTime) || momentInicio.isBetween(beforeTime, afterTime)) {
-            throw new Exception('Ya te encuentras inscripto en una clase');
+            throw new Exception('Ya te encuentras inscripto en una clase a esa hora');
         }
 
         if (momentFin.isSame(beforeTime) || momentFin.isSame(afterTime) || momentFin.isBetween(beforeTime, afterTime)) {
-            throw new Exception('Ya te encuentras inscripto en una clase');
+            throw new Exception('Ya te encuentras inscripto en una clase a esa hora');
+        }
+
+        if (beforeTime.isBetween(momentInicio, momentFin) || afterTime.isBetween(momentInicio, momentFin)) {
+            throw new Exception('Ya te encuentras inscripto en una clase a esa hora');
         }
     });
-    
+
     let newEnroll = getRepository(Inscripcion).create({
         clase: clase,
         usuario: estudiante
@@ -289,4 +363,62 @@ export const enroll = async (request: Request, response: Response): Promise<Resp
     let result = await getRepository(Inscripcion).save(newEnroll);
 
     return response.json(result);
+}
+
+export const getClass = async (request: Request, response: Response): Promise<Response> => {
+    if (!request.query.id) throw new Exception('Falta el parametro id de la clase');
+
+    let profesor = await getRepository(Usuario).findOne({
+        where: { id: request.body.usuario.id }
+    });
+
+    let clase = await getRepository(Clase).findOne({
+        where: { profesor: profesor, id: request.query.id },
+        relations: ['categorias', 'profesor', 'inscripciones']
+    });
+
+    if (!clase) throw new Exception('No se encontro la clase');
+
+    let inscripciones = await getInscripciones(clase);
+
+    let result = {
+        id: clase.id,
+        hora_inicio: clase.hora_inicio,
+        hora_fin: clase.hora_fin,
+        fecha: clase.fecha,
+        nombre: clase.nombre,
+        categorias: clase.categorias,
+        profesor: {
+            id: clase.profesor.id,
+            email: clase.profesor.email,
+            nombre: clase.profesor.nombre,
+            imagen: clase.profesor.imagen
+        },
+        inscripciones: inscripciones
+    };
+
+    return response.json(result);
+}
+
+const getInscripciones = async (clase: Clase) => {
+    let result = [];
+    
+    let inscripciones = await getRepository(Inscripcion).find({
+        where: {clase: clase},
+        relations: ['usuario']
+    });
+
+    for(let i = 0; i<inscripciones.length; i++){
+        result.push({
+            id: inscripciones[i].id,
+            asistio: inscripciones[i].asistio,
+            usuario: {
+                id: inscripciones[i].usuario.id,
+                nombre: inscripciones[i].usuario.nombre,
+                email: inscripciones[i].usuario.email,
+            },
+        });
+    }
+
+    return result;
 }

@@ -39,7 +39,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-exports.enroll = exports.createClass = exports.getClasses = exports.createCategory = exports.getCategories = exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
+exports.getClass = exports.enroll = exports.createClass = exports.getClassesFiltered = exports.getClasses = exports.createCategory = exports.getCategories = exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
 var typeorm_1 = require("typeorm"); // getRepository"  traer una tabla de la base de datos asociada al objeto
 var utils_1 = require("./utils");
 var Usuario_1 = require("./entities/Usuario");
@@ -50,6 +50,8 @@ var Clase_1 = require("./entities/Clase");
 var validator_1 = __importDefault(require("validator"));
 var moment_1 = __importDefault(require("moment"));
 var Inscripcion_1 = require("./entities/Inscripcion");
+var formatTime = 'LT';
+var formatDate = 'YYYY-MM-DD';
 var signUp = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
     var usuario, salt, hashedPassword, result;
     return __generator(this, function (_a) {
@@ -269,22 +271,88 @@ var createCategory = function (request, response) { return __awaiter(void 0, voi
 }); };
 exports.createCategory = createCategory;
 var getClasses = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
-    var result;
+    var clases, result, i;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0: return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).find({
-                    where: { fecha: typeorm_1.MoreThanOrEqual(new Date()) },
-                    relations: ['profesor']
+                    where: { fecha: typeorm_1.MoreThan(moment_1["default"]().format(formatDate)) },
+                    relations: ['profesor', 'categorias']
                 })];
             case 1:
-                result = _a.sent();
+                clases = _a.sent();
+                result = [];
+                for (i = 0; i < clases.length; i++) {
+                    result.push({
+                        id: clases[i].id,
+                        hora_inicio: clases[i].hora_inicio,
+                        hora_fin: clases[i].hora_fin,
+                        fecha: clases[i].fecha,
+                        nombre: clases[i].nombre,
+                        categorias: clases[i].categorias,
+                        profesor: {
+                            id: clases[i].profesor.id,
+                            email: clases[i].profesor.email,
+                            nombre: clases[i].profesor.nombre,
+                            imagen: clases[i].profesor.imagen
+                        }
+                    });
+                }
                 return [2 /*return*/, response.json(result)];
         }
     });
 }); };
 exports.getClasses = getClasses;
+var getClassesFiltered = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var compareDay, week_day, where, hora_inicio, clases, result, i;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                compareDay = moment_1["default"]().add(1, 'day');
+                if (request.query.week_day && typeof request.query.week_day == 'string') {
+                    week_day = parseInt(request.query.week_day);
+                    if (moment_1["default"]().isoWeekday() <= week_day) {
+                        compareDay = moment_1["default"]().isoWeekday(week_day);
+                    }
+                    else {
+                        compareDay = moment_1["default"]().add(1, 'weeks').isoWeekday(week_day);
+                    }
+                }
+                where = { fecha: compareDay.format(formatDate) };
+                hora_inicio = moment_1["default"]();
+                if (request.query.hora_inicio && typeof request.query.hora_inicio === 'string' && moment_1["default"](request.query.hora_inicio, formatTime).isValid()) {
+                    hora_inicio = moment_1["default"](request.query.hora_inicio, formatTime);
+                    Object.assign(where, { hora_inicio: typeorm_1.MoreThan(hora_inicio.format(formatTime)) });
+                }
+                return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).find({
+                        where: where,
+                        relations: ['profesor', 'categorias']
+                    })];
+            case 1:
+                clases = _a.sent();
+                result = [];
+                for (i = 0; i < clases.length; i++) {
+                    result.push({
+                        id: clases[i].id,
+                        hora_inicio: clases[i].hora_inicio,
+                        hora_fin: clases[i].hora_fin,
+                        fecha: clases[i].fecha,
+                        nombre: clases[i].nombre,
+                        categorias: clases[i].categorias,
+                        profesor: {
+                            id: clases[i].profesor.id,
+                            email: clases[i].profesor.email,
+                            nombre: clases[i].profesor.nombre,
+                            imagen: clases[i].profesor.imagen
+                        }
+                    });
+                }
+                return [2 /*return*/, response.json(result)];
+        }
+    });
+}); };
+exports.getClassesFiltered = getClassesFiltered;
 var createClass = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
-    var fecha, formatTime, momentInicio, momentFin, hora_inicio, hora_fin, categories, profesor, clases, newClass, result;
+    var fecha, momentInicio, momentFin, hora_inicio, hora_fin, categories, profesor, clases, newClass, result;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -298,12 +366,12 @@ var createClass = function (request, response) { return __awaiter(void 0, void 0
                 if (!request.body.hora_fin)
                     throw new utils_1.Exception('Falta la hora de finalizacion de la clase');
                 // Validate Date
-                if (!moment_1["default"](request.body.fecha, 'YYYY-MM-DD').isValid())
+                if (!moment_1["default"](request.body.fecha, formatDate).isValid())
                     throw new utils_1.Exception('Fecha invalida (YYYY-MM-DD)');
                 if (!moment_1["default"](request.body.fecha).isAfter())
                     throw new utils_1.Exception('La Fecha ingresada debe ser posterior a la fecha actual');
-                fecha = moment_1["default"](request.body.fecha, 'YYYY-MM-DD').format('YYYY-MM-DD');
-                formatTime = 'LT';
+                fecha = moment_1["default"](request.body.fecha, formatDate).format(formatDate);
+                // Validate starting and ending time
                 if (!moment_1["default"](request.body.hora_inicio, formatTime).isValid())
                     throw new utils_1.Exception('Hora de inicio invalida');
                 if (!moment_1["default"](request.body.hora_fin, formatTime).isValid())
@@ -342,6 +410,9 @@ var createClass = function (request, response) { return __awaiter(void 0, void 0
                         }
                         if (momentFin.isSame(beforeTime) || momentFin.isSame(afterTime) || momentFin.isBetween(beforeTime, afterTime)) {
                             throw new utils_1.Exception("Ya hay una clase en la fecha de finalizacion ingresada: " + clase.id + " - " + clase.nombre);
+                        }
+                        if (beforeTime.isBetween(momentInicio, momentFin) || afterTime.isBetween(momentInicio, momentFin)) {
+                            throw new utils_1.Exception("Ya hay una clase entre las fechas ingresadas: " + clase.id + " - " + clase.nombre);
                         }
                     });
                 }
@@ -389,7 +460,7 @@ var getCategoriesByNames = function (array) { return __awaiter(void 0, void 0, v
     });
 }); };
 var enroll = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
-    var clase, estudiante, inscripcion, inscripciones, formatTime, momentInicio, momentFin, newEnroll, result;
+    var clase, estudiante, inscripcion, inscripciones, momentInicio, momentFin, newEnroll, result;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -403,6 +474,8 @@ var enroll = function (request, response) { return __awaiter(void 0, void 0, voi
                 clase = _a.sent();
                 if (!clase)
                     throw new utils_1.Exception('No existe ninguna clase con el id ingresado');
+                if (!moment_1["default"](clase.fecha).isAfter())
+                    throw new utils_1.Exception('La clase ya ha terminado');
                 return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne(request.body.usuario.id)];
             case 2:
                 estudiante = _a.sent();
@@ -424,17 +497,19 @@ var enroll = function (request, response) { return __awaiter(void 0, void 0, voi
                         .getMany()];
             case 4:
                 inscripciones = _a.sent();
-                formatTime = 'LT';
                 momentInicio = moment_1["default"](clase.hora_inicio, formatTime);
                 momentFin = moment_1["default"](clase.hora_fin, formatTime);
                 inscripciones.forEach(function (element) {
                     var beforeTime = moment_1["default"](element.clase.hora_inicio, formatTime);
                     var afterTime = moment_1["default"](element.clase.hora_fin, formatTime);
                     if (momentInicio.isSame(beforeTime) || momentInicio.isSame(afterTime) || momentInicio.isBetween(beforeTime, afterTime)) {
-                        throw new utils_1.Exception('Ya te encuentras inscripto en una clase');
+                        throw new utils_1.Exception('Ya te encuentras inscripto en una clase a esa hora');
                     }
                     if (momentFin.isSame(beforeTime) || momentFin.isSame(afterTime) || momentFin.isBetween(beforeTime, afterTime)) {
-                        throw new utils_1.Exception('Ya te encuentras inscripto en una clase');
+                        throw new utils_1.Exception('Ya te encuentras inscripto en una clase a esa hora');
+                    }
+                    if (beforeTime.isBetween(momentInicio, momentFin) || afterTime.isBetween(momentInicio, momentFin)) {
+                        throw new utils_1.Exception('Ya te encuentras inscripto en una clase a esa hora');
                     }
                 });
                 newEnroll = typeorm_1.getRepository(Inscripcion_1.Inscripcion).create({
@@ -449,3 +524,73 @@ var enroll = function (request, response) { return __awaiter(void 0, void 0, voi
     });
 }); };
 exports.enroll = enroll;
+var getClass = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var profesor, clase, inscripciones, result;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                if (!request.query.id)
+                    throw new utils_1.Exception('Falta el parametro id de la clase');
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne({
+                        where: { id: request.body.usuario.id }
+                    })];
+            case 1:
+                profesor = _a.sent();
+                return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).findOne({
+                        where: { profesor: profesor, id: request.query.id },
+                        relations: ['categorias', 'profesor', 'inscripciones']
+                    })];
+            case 2:
+                clase = _a.sent();
+                if (!clase)
+                    throw new utils_1.Exception('No se encontro la clase');
+                return [4 /*yield*/, getInscripciones(clase)];
+            case 3:
+                inscripciones = _a.sent();
+                result = {
+                    id: clase.id,
+                    hora_inicio: clase.hora_inicio,
+                    hora_fin: clase.hora_fin,
+                    fecha: clase.fecha,
+                    nombre: clase.nombre,
+                    categorias: clase.categorias,
+                    profesor: {
+                        id: clase.profesor.id,
+                        email: clase.profesor.email,
+                        nombre: clase.profesor.nombre,
+                        imagen: clase.profesor.imagen
+                    },
+                    inscripciones: inscripciones
+                };
+                return [2 /*return*/, response.json(result)];
+        }
+    });
+}); };
+exports.getClass = getClass;
+var getInscripciones = function (clase) { return __awaiter(void 0, void 0, void 0, function () {
+    var result, inscripciones, i;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                result = [];
+                return [4 /*yield*/, typeorm_1.getRepository(Inscripcion_1.Inscripcion).find({
+                        where: { clase: clase },
+                        relations: ['usuario']
+                    })];
+            case 1:
+                inscripciones = _a.sent();
+                for (i = 0; i < inscripciones.length; i++) {
+                    result.push({
+                        id: inscripciones[i].id,
+                        asistio: inscripciones[i].asistio,
+                        usuario: {
+                            id: inscripciones[i].usuario.id,
+                            nombre: inscripciones[i].usuario.nombre,
+                            email: inscripciones[i].usuario.email
+                        }
+                    });
+                }
+                return [2 /*return*/, result];
+        }
+    });
+}); };
