@@ -12,6 +12,7 @@ var typeorm_1 = require("typeorm");
 var utils_1 = require("./utils");
 var private_routes_1 = __importDefault(require("./private_routes"));
 var public_routes_1 = __importDefault(require("./public_routes"));
+var bodyParser = require('body-parser');
 var PORT = 3001;
 var PUBLIC_URL = utils_1.url(PORT);
 var app = express_1["default"]();
@@ -25,6 +26,10 @@ https://developer.okta.com/blog/2018/09/13/build-and-understand-express-middlewa
 app.use(cors_1["default"]()); //disable CORS validations
 app.use(express_1["default"].json()); // the API will be JSON based for serialization
 app.use(morgan_1["default"]('dev')); //logging
+app.use(express_1["default"].urlencoded({ extended: false }));
+app.use(express_1["default"].json());
+app.use(express_1["default"].static("../../client"));
+app.use(bodyParser.urlencoded({ extended: false }));
 // render home website with usefull information for boilerplate developers (students)
 app.get('/', function (req, res) { return utils_1.renderIndex(app, PUBLIC_URL).then(function (html) { return res.status(404).send(html); }); });
 // Import public routes from ./src/public_routes.ts file
