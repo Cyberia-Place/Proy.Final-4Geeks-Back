@@ -9,6 +9,7 @@ import { Clase } from './entities/Clase';
 import validator from 'validator';
 import moment from 'moment';
 import { Inscripcion } from './entities/Inscripcion';
+import { Valoracion } from './entities/Valoracion';
 
 let formatTime = 'LT';
 let formatDate = 'YYYY-MM-DD';
@@ -402,13 +403,13 @@ export const getClass = async (request: Request, response: Response): Promise<Re
 
 const getInscripciones = async (clase: Clase) => {
     let result = [];
-    
+
     let inscripciones = await getRepository(Inscripcion).find({
-        where: {clase: clase},
+        where: { clase: clase },
         relations: ['usuario']
     });
 
-    for(let i = 0; i<inscripciones.length; i++){
+    for (let i = 0; i < inscripciones.length; i++) {
         result.push({
             id: inscripciones[i].id,
             asistio: inscripciones[i].asistio,
@@ -421,4 +422,40 @@ const getInscripciones = async (clase: Clase) => {
     }
 
     return result;
+}
+
+export const valorate = async (request: Request, response: Response): Promise<Response> => {
+    if (!request.body.valoracion) throw new Exception('Falta la valoracion del docente');
+    if (!request.body.id) throw new Exception('Falta el id del docente a valorar');
+
+    let comentario = null;
+    if (request.body.comentario) comentario = request.body.comentario;
+
+    let usuario = await getRepository(Usuario).findOne({
+        where: { id: request.body.usuario.id }
+    });
+
+    if (!usuario) throw new Exception('No se encontro el usuario');
+
+    let docente = await getRepository(Usuario).findOne({
+        where: { id: request.body.id }
+    });
+
+    if (!docente) throw new Exception('No se encontro el docente');
+
+    let val = await getRepository(Valoracion).findOne({
+        where: { valorado: docente, valorador: usuario }
+    });
+
+    if(val) throw new Exception('Ya existe una valoracion al docente');
+
+    let clase = await getRepository(Clase).createQueryBuilder("clase")
+    .innerJoin("clase.inscripciones", "inscripciones")
+    .where("clase.profesor = :profesor", {profesor: docente.id})
+    .andWhere("inscripciones.usuario = :usuario", {usuario: usuario.id})
+    .getOne();
+
+    console.log(clase);
+
+    return response.json();
 }

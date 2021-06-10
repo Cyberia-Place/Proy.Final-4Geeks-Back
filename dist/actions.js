@@ -39,7 +39,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-exports.getClass = exports.enroll = exports.createClass = exports.getClassesFiltered = exports.getClasses = exports.createCategory = exports.getCategories = exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
+exports.valorate = exports.getClass = exports.enroll = exports.createClass = exports.getClassesFiltered = exports.getClasses = exports.createCategory = exports.getCategories = exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
 var typeorm_1 = require("typeorm"); // getRepository"  traer una tabla de la base de datos asociada al objeto
 var utils_1 = require("./utils");
 var Usuario_1 = require("./entities/Usuario");
@@ -50,6 +50,7 @@ var Clase_1 = require("./entities/Clase");
 var validator_1 = __importDefault(require("validator"));
 var moment_1 = __importDefault(require("moment"));
 var Inscripcion_1 = require("./entities/Inscripcion");
+var Valoracion_1 = require("./entities/Valoracion");
 var formatTime = 'LT';
 var formatDate = 'YYYY-MM-DD';
 var signUp = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
@@ -594,3 +595,49 @@ var getInscripciones = function (clase) { return __awaiter(void 0, void 0, void 
         }
     });
 }); };
+var valorate = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var comentario, usuario, docente, val, clase;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                if (!request.body.valoracion)
+                    throw new utils_1.Exception('Falta la valoracion del docente');
+                if (!request.body.id)
+                    throw new utils_1.Exception('Falta el id del docente a valorar');
+                comentario = null;
+                if (request.body.comentario)
+                    comentario = request.body.comentario;
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne({
+                        where: { id: request.body.usuario.id }
+                    })];
+            case 1:
+                usuario = _a.sent();
+                if (!usuario)
+                    throw new utils_1.Exception('No se encontro el usuario');
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne({
+                        where: { id: request.body.id }
+                    })];
+            case 2:
+                docente = _a.sent();
+                if (!docente)
+                    throw new utils_1.Exception('No se encontro el docente');
+                return [4 /*yield*/, typeorm_1.getRepository(Valoracion_1.Valoracion).findOne({
+                        where: { valorado: docente, valorador: usuario }
+                    })];
+            case 3:
+                val = _a.sent();
+                if (val)
+                    throw new utils_1.Exception('Ya existe una valoracion al docente');
+                return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
+                        .innerJoin("clase.inscripciones", "inscripciones")
+                        .where("clase.profesor = :profesor", { profesor: docente.id })
+                        .andWhere("inscripciones.usuario = :usuario", { usuario: usuario.id })
+                        .getOne()];
+            case 4:
+                clase = _a.sent();
+                console.log(clase);
+                return [2 /*return*/, response.json()];
+        }
+    });
+}); };
+exports.valorate = valorate;
