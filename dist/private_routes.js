@@ -73,15 +73,35 @@ router.post("/checkout", function (req, res) {
                 unit_price: 100,
                 quantity: 1
             }],
-        back_urls: {
-            "success": "https://3001-olive-hippopotamus-wdkdx0yx.ws-us08.gitpod.io:3001/feedback",
-            "failure": "https://3001-olive-hippopotamus-wdkdx0yx.ws-us08.gitpod.io/feedback",
-            "pending": "https://3001-olive-hippopotamus-wdkdx0yx.ws-us08.gitpod.io/feedback"
-        },
-        auto_return: 'approved'
+        payer: {
+            name: "Test",
+            surname: "Test",
+            email: "test_user_61138522@testuser.com",
+            date_created: "2015-06-02T12:58:41.425-04:00",
+            phone: {
+                area_code: "598",
+                number: 92884093
+            },
+            identification: {
+                type: "CI",
+                number: "11111111"
+            },
+            address: {
+                street_name: "Oribe",
+                street_number: 790,
+                zip_code: "80000"
+            },
+            back_urls: {
+                "success": process.env.FRONT_URL_COMPRA,
+                "failure": process.env.FRONT_URL_COMPRA,
+                "pending": process.env.FRONT_URL_COMPRA
+            },
+            auto_return: 'approved'
+        }
     };
     mercadopago.preferences.create(preference)
         .then(function (response) {
+        console.log(response);
         res.redirect(response.body.init_point);
     })["catch"](function (error) {
         console.log(error);
