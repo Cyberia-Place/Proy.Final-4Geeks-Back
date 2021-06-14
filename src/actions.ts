@@ -76,9 +76,12 @@ export const logIn = async (request: Request, response: Response): Promise<Respo
 }
 
 export const profile = async (request: Request, response: Response): Promise<Response> => {
+    let idUsuario = request.body.usuario.id;
+    if (request.params.id) idUsuario = request.params.id;
+
     let usuario = await getRepository(Usuario).findOne({
         select: ['id', 'email', 'nombre', 'imagen', 'pais', 'edad', 'descripcion', 'idioma', 'ocupacion'],
-        where: { id: request.body.usuario.id }
+        where: { id: idUsuario }
     });
 
     if (!usuario) throw new Exception('No se encontro el usuario');
@@ -166,7 +169,8 @@ export const getClasses = async (request: Request, response: Response): Promise<
                 id: clases[i].profesor.id,
                 email: clases[i].profesor.email,
                 nombre: clases[i].profesor.nombre,
-                imagen: clases[i].profesor.imagen
+                imagen: clases[i].profesor.imagen,
+                valoracion: await getValoracionUsuario(clases[i].profesor.id)
             }
         });
     }
@@ -211,7 +215,8 @@ export const getClassesFiltered = async (request: Request, response: Response): 
                 id: clases[i].profesor.id,
                 email: clases[i].profesor.email,
                 nombre: clases[i].profesor.nombre,
-                imagen: clases[i].profesor.imagen
+                imagen: clases[i].profesor.imagen,
+                valoracion: await getValoracionUsuario(clases[i].profesor.id)
             }
         });
     }
@@ -393,7 +398,8 @@ export const getClass = async (request: Request, response: Response): Promise<Re
             id: clase.profesor.id,
             email: clase.profesor.email,
             nombre: clase.profesor.nombre,
-            imagen: clase.profesor.imagen
+            imagen: clase.profesor.imagen,
+            valoracion: await getValoracionUsuario(clase.profesor.id)
         },
         inscripciones: inscripciones
     };
@@ -476,6 +482,84 @@ export const valorate = async (request: Request, response: Response): Promise<Re
     });
 
     let result = await getRepository(Valoracion).save(newValoration);
+
+    return response.json(result);
+}
+
+const getValoracionUsuario = async (idUsuario: number) => {
+    let valoracion = 0;
+
+    let val = await getRepository(Valoracion).createQueryBuilder("valoracion")
+        .select("AVG(valoracion.valoracion)", "valoracion")
+        .where("valoracion.valorado = :valorado", { valorado: idUsuario })
+        .getRawOne();
+
+    if (val.valoracion) valoracion = Math.round(val.valoracion);
+
+    return valoracion;
+}
+
+export const getUserStats = async (request: Request, response: Response): Promise<Response> => {
+    let idUsuario = request.body.usuario.id;
+    if (request.params.id) idUsuario = request.params.id;
+
+    let usuario = await getRepository(Usuario).findOne({
+        where: { id: idUsuario }
+    });
+
+    if (!usuario) throw new Exception('No se encontro el usuario');
+
+    let valoracion = await getValoracionUsuario(usuario.id);
+
+    let res = await getRepository(Clase).createQueryBuilder("clase")
+        .select("SUM(clase.hora_fin - clase.hora_inicio)", "horas")
+        .where("clase.profesor = :profesor", { profesor: usuario.id })
+        .andWhere("clase.fecha < :fecha", { fecha: moment().format(formatDate) })
+        .getRawOne();
+
+    let horas_clase = 0;
+    if (res.horas) horas_clase = res.horas.hours;
+
+    res = await getRepository(Clase).createQueryBuilder("clase")
+        .select("COUNT(clase.id)", "cant")
+        .where("clase.profesor = :profesor", { profesor: usuario.id })
+        .andWhere("clase.fecha < :fecha", { fecha: moment().format(formatDate) })
+        .getRawOne();
+
+    let cantidad_clase = 0;
+    if (res.cant) cantidad_clase = parseInt(res.cant);
+
+    res = await getRepository(Clase).createQueryBuilder("clase")
+        .select("SUM(clase.hora_fin - clase.hora_inicio)", "horas")
+        .innerJoin("clase.inscripciones", "inscripciones")
+        .where("inscripciones.usuario = :usuario", { usuario: usuario.id })
+        .andWhere("clase.fecha < :fecha", { fecha: moment().format(formatDate) })
+        .getRawOne();
+
+    let horas_en_clase = 0;
+    if (res.horas) horas_en_clase = res.horas.hours;
+
+    res = await getRepository(Clase).createQueryBuilder("clase")
+        .select("COUNT(clase.id)", "cant")
+        .innerJoin("clase.inscripciones", "inscripciones")
+        .where("inscripciones.usuario = :usuario", { usuario: usuario.id })
+        .andWhere("clase.fecha < :fecha", { fecha: moment().format(formatDate) })
+        .getRawOne();
+
+    let cantidad_en_clase = 0;
+    if (res.cant) cantidad_en_clase = parseInt(res.cant);
+
+    let result = {
+        enseniando: {
+            valoracion,
+            horas_clase,
+            cantidad_clase
+        },
+        aprendiendo: {
+            cantidad_en_clase,
+            horas_en_clase
+        }
+    }
 
     return response.json(result);
 }

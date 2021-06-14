@@ -57,6 +57,12 @@ var auth = function (request, response, next) {
 };
 // Ruta para dar los datos del usuario logeado
 router.get('/user/profile', auth, utils_1.safe(actions.profile));
+// Ruta para dar los datos de un usuario particular
+router.get('/user/profile/:id', auth, utils_1.safe(actions.profile));
+// Ruta para dar las stats del usuario logeado
+router.get('/user/stats', auth, utils_1.safe(actions.getUserStats));
+// Ruta para dar las stats de un usuario particular
+router.get('/user/stats/:id', auth, utils_1.safe(actions.getUserStats));
 // Ruta para actualizar el perfil del usuario
 router.put('/user/update', auth, utils_1.safe(actions.updateProfile));
 // Ruta para actualizar la contrasenia del usuario

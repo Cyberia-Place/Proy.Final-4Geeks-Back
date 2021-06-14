@@ -40,6 +40,15 @@ const auth = (request: Request, response: Response, next: NextFunction) => {
 // Ruta para dar los datos del usuario logeado
 router.get('/user/profile', auth, safe(actions.profile));
 
+// Ruta para dar los datos de un usuario particular
+router.get('/user/profile/:id', auth, safe(actions.profile));
+
+// Ruta para dar las stats del usuario logeado
+router.get('/user/stats', auth, safe(actions.getUserStats));
+
+// Ruta para dar las stats de un usuario particular
+router.get('/user/stats/:id', auth, safe(actions.getUserStats));
+
 // Ruta para actualizar el perfil del usuario
 router.put('/user/update', auth, safe(actions.updateProfile));
 

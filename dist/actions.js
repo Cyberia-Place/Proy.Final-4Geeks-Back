@@ -39,7 +39,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-exports.valorate = exports.getClass = exports.enroll = exports.createClass = exports.getClassesFiltered = exports.getClasses = exports.createCategory = exports.getCategories = exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
+exports.getUserStats = exports.valorate = exports.getClass = exports.enroll = exports.createClass = exports.getClassesFiltered = exports.getClasses = exports.createCategory = exports.getCategories = exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
 var typeorm_1 = require("typeorm"); // getRepository"  traer una tabla de la base de datos asociada al objeto
 var utils_1 = require("./utils");
 var Usuario_1 = require("./entities/Usuario");
@@ -134,13 +134,17 @@ var logIn = function (request, response) { return __awaiter(void 0, void 0, void
 }); };
 exports.logIn = logIn;
 var profile = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
-    var usuario;
+    var idUsuario, usuario;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0: return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne({
-                    select: ['id', 'email', 'nombre', 'imagen', 'pais', 'edad', 'descripcion', 'idioma', 'ocupacion'],
-                    where: { id: request.body.usuario.id }
-                })];
+            case 0:
+                idUsuario = request.body.usuario.id;
+                if (request.params.id)
+                    idUsuario = request.params.id;
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne({
+                        select: ['id', 'email', 'nombre', 'imagen', 'pais', 'edad', 'descripcion', 'idioma', 'ocupacion'],
+                        where: { id: idUsuario }
+                    })];
             case 1:
                 usuario = _a.sent();
                 if (!usuario)
@@ -272,41 +276,55 @@ var createCategory = function (request, response) { return __awaiter(void 0, voi
 }); };
 exports.createCategory = createCategory;
 var getClasses = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
-    var clases, result, i;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
+    var clases, result, i, _a, _b;
+    var _c, _d;
+    return __generator(this, function (_e) {
+        switch (_e.label) {
             case 0: return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).find({
                     where: { fecha: typeorm_1.MoreThan(moment_1["default"]().format(formatDate)) },
                     relations: ['profesor', 'categorias']
                 })];
             case 1:
-                clases = _a.sent();
+                clases = _e.sent();
                 result = [];
-                for (i = 0; i < clases.length; i++) {
-                    result.push({
-                        id: clases[i].id,
-                        hora_inicio: clases[i].hora_inicio,
-                        hora_fin: clases[i].hora_fin,
-                        fecha: clases[i].fecha,
-                        nombre: clases[i].nombre,
-                        categorias: clases[i].categorias,
-                        profesor: {
-                            id: clases[i].profesor.id,
-                            email: clases[i].profesor.email,
-                            nombre: clases[i].profesor.nombre,
-                            imagen: clases[i].profesor.imagen
-                        }
-                    });
-                }
-                return [2 /*return*/, response.json(result)];
+                i = 0;
+                _e.label = 2;
+            case 2:
+                if (!(i < clases.length)) return [3 /*break*/, 5];
+                _b = (_a = result).push;
+                _c = {
+                    id: clases[i].id,
+                    hora_inicio: clases[i].hora_inicio,
+                    hora_fin: clases[i].hora_fin,
+                    fecha: clases[i].fecha,
+                    nombre: clases[i].nombre,
+                    categorias: clases[i].categorias
+                };
+                _d = {
+                    id: clases[i].profesor.id,
+                    email: clases[i].profesor.email,
+                    nombre: clases[i].profesor.nombre,
+                    imagen: clases[i].profesor.imagen
+                };
+                return [4 /*yield*/, getValoracionUsuario(clases[i].profesor.id)];
+            case 3:
+                _b.apply(_a, [(_c.profesor = (_d.valoracion = _e.sent(),
+                        _d),
+                        _c)]);
+                _e.label = 4;
+            case 4:
+                i++;
+                return [3 /*break*/, 2];
+            case 5: return [2 /*return*/, response.json(result)];
         }
     });
 }); };
 exports.getClasses = getClasses;
 var getClassesFiltered = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
-    var compareDay, week_day, where, hora_inicio, clases, result, i;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
+    var compareDay, week_day, where, hora_inicio, clases, result, i, _a, _b;
+    var _c, _d;
+    return __generator(this, function (_e) {
+        switch (_e.label) {
             case 0:
                 compareDay = moment_1["default"]().add(1, 'day');
                 if (request.query.week_day && typeof request.query.week_day == 'string') {
@@ -329,25 +347,37 @@ var getClassesFiltered = function (request, response) { return __awaiter(void 0,
                         relations: ['profesor', 'categorias']
                     })];
             case 1:
-                clases = _a.sent();
+                clases = _e.sent();
                 result = [];
-                for (i = 0; i < clases.length; i++) {
-                    result.push({
-                        id: clases[i].id,
-                        hora_inicio: clases[i].hora_inicio,
-                        hora_fin: clases[i].hora_fin,
-                        fecha: clases[i].fecha,
-                        nombre: clases[i].nombre,
-                        categorias: clases[i].categorias,
-                        profesor: {
-                            id: clases[i].profesor.id,
-                            email: clases[i].profesor.email,
-                            nombre: clases[i].profesor.nombre,
-                            imagen: clases[i].profesor.imagen
-                        }
-                    });
-                }
-                return [2 /*return*/, response.json(result)];
+                i = 0;
+                _e.label = 2;
+            case 2:
+                if (!(i < clases.length)) return [3 /*break*/, 5];
+                _b = (_a = result).push;
+                _c = {
+                    id: clases[i].id,
+                    hora_inicio: clases[i].hora_inicio,
+                    hora_fin: clases[i].hora_fin,
+                    fecha: clases[i].fecha,
+                    nombre: clases[i].nombre,
+                    categorias: clases[i].categorias
+                };
+                _d = {
+                    id: clases[i].profesor.id,
+                    email: clases[i].profesor.email,
+                    nombre: clases[i].profesor.nombre,
+                    imagen: clases[i].profesor.imagen
+                };
+                return [4 /*yield*/, getValoracionUsuario(clases[i].profesor.id)];
+            case 3:
+                _b.apply(_a, [(_c.profesor = (_d.valoracion = _e.sent(),
+                        _d),
+                        _c)]);
+                _e.label = 4;
+            case 4:
+                i++;
+                return [3 /*break*/, 2];
+            case 5: return [2 /*return*/, response.json(result)];
         }
     });
 }); };
@@ -527,8 +557,9 @@ var enroll = function (request, response) { return __awaiter(void 0, void 0, voi
 exports.enroll = enroll;
 var getClass = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
     var profesor, clase, inscripciones, result;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
+    var _a, _b;
+    return __generator(this, function (_c) {
+        switch (_c.label) {
             case 0:
                 if (!request.query.id)
                     throw new utils_1.Exception('Falta el parametro id de la clase');
@@ -536,33 +567,38 @@ var getClass = function (request, response) { return __awaiter(void 0, void 0, v
                         where: { id: request.body.usuario.id }
                     })];
             case 1:
-                profesor = _a.sent();
+                profesor = _c.sent();
                 return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).findOne({
                         where: { profesor: profesor, id: request.query.id },
                         relations: ['categorias', 'profesor', 'inscripciones']
                     })];
             case 2:
-                clase = _a.sent();
+                clase = _c.sent();
                 if (!clase)
                     throw new utils_1.Exception('No se encontro la clase');
                 return [4 /*yield*/, getInscripciones(clase)];
             case 3:
-                inscripciones = _a.sent();
-                result = {
+                inscripciones = _c.sent();
+                _a = {
                     id: clase.id,
                     hora_inicio: clase.hora_inicio,
                     hora_fin: clase.hora_fin,
                     fecha: clase.fecha,
                     nombre: clase.nombre,
-                    categorias: clase.categorias,
-                    profesor: {
-                        id: clase.profesor.id,
-                        email: clase.profesor.email,
-                        nombre: clase.profesor.nombre,
-                        imagen: clase.profesor.imagen
-                    },
-                    inscripciones: inscripciones
+                    categorias: clase.categorias
                 };
+                _b = {
+                    id: clase.profesor.id,
+                    email: clase.profesor.email,
+                    nombre: clase.profesor.nombre,
+                    imagen: clase.profesor.imagen
+                };
+                return [4 /*yield*/, getValoracionUsuario(clase.profesor.id)];
+            case 4:
+                result = (_a.profesor = (_b.valoracion = _c.sent(),
+                    _b),
+                    _a.inscripciones = inscripciones,
+                    _a);
                 return [2 /*return*/, response.json(result)];
         }
     });
@@ -662,3 +698,97 @@ var valorate = function (request, response) { return __awaiter(void 0, void 0, v
     });
 }); };
 exports.valorate = valorate;
+var getValoracionUsuario = function (idUsuario) { return __awaiter(void 0, void 0, void 0, function () {
+    var valoracion, val;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                valoracion = 0;
+                return [4 /*yield*/, typeorm_1.getRepository(Valoracion_1.Valoracion).createQueryBuilder("valoracion")
+                        .select("AVG(valoracion.valoracion)", "valoracion")
+                        .where("valoracion.valorado = :valorado", { valorado: idUsuario })
+                        .getRawOne()];
+            case 1:
+                val = _a.sent();
+                if (val.valoracion)
+                    valoracion = Math.round(val.valoracion);
+                return [2 /*return*/, valoracion];
+        }
+    });
+}); };
+var getUserStats = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var idUsuario, usuario, valoracion, res, horas_clase, cantidad_clase, horas_en_clase, cantidad_en_clase, result;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                idUsuario = request.body.usuario.id;
+                if (request.params.id)
+                    idUsuario = request.params.id;
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne({
+                        where: { id: idUsuario }
+                    })];
+            case 1:
+                usuario = _a.sent();
+                if (!usuario)
+                    throw new utils_1.Exception('No se encontro el usuario');
+                return [4 /*yield*/, getValoracionUsuario(usuario.id)];
+            case 2:
+                valoracion = _a.sent();
+                return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
+                        .select("SUM(clase.hora_fin - clase.hora_inicio)", "horas")
+                        .where("clase.profesor = :profesor", { profesor: usuario.id })
+                        .andWhere("clase.fecha < :fecha", { fecha: moment_1["default"]().format(formatDate) })
+                        .getRawOne()];
+            case 3:
+                res = _a.sent();
+                horas_clase = 0;
+                if (res.horas)
+                    horas_clase = res.horas.hours;
+                return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
+                        .select("COUNT(clase.id)", "cant")
+                        .where("clase.profesor = :profesor", { profesor: usuario.id })
+                        .andWhere("clase.fecha < :fecha", { fecha: moment_1["default"]().format(formatDate) })
+                        .getRawOne()];
+            case 4:
+                res = _a.sent();
+                cantidad_clase = 0;
+                if (res.cant)
+                    cantidad_clase = parseInt(res.cant);
+                return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
+                        .select("SUM(clase.hora_fin - clase.hora_inicio)", "horas")
+                        .innerJoin("clase.inscripciones", "inscripciones")
+                        .where("inscripciones.usuario = :usuario", { usuario: usuario.id })
+                        .andWhere("clase.fecha < :fecha", { fecha: moment_1["default"]().format(formatDate) })
+                        .getRawOne()];
+            case 5:
+                res = _a.sent();
+                horas_en_clase = 0;
+                if (res.horas)
+                    horas_en_clase = res.horas.hours;
+                return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
+                        .select("COUNT(clase.id)", "cant")
+                        .innerJoin("clase.inscripciones", "inscripciones")
+                        .where("inscripciones.usuario = :usuario", { usuario: usuario.id })
+                        .andWhere("clase.fecha < :fecha", { fecha: moment_1["default"]().format(formatDate) })
+                        .getRawOne()];
+            case 6:
+                res = _a.sent();
+                cantidad_en_clase = 0;
+                if (res.cant)
+                    cantidad_en_clase = parseInt(res.cant);
+                result = {
+                    enseniando: {
+                        valoracion: valoracion,
+                        horas_clase: horas_clase,
+                        cantidad_clase: cantidad_clase
+                    },
+                    aprendiendo: {
+                        cantidad_en_clase: cantidad_en_clase,
+                        horas_en_clase: horas_en_clase
+                    }
+                };
+                return [2 /*return*/, response.json(result)];
+        }
+    });
+}); };
+exports.getUserStats = getUserStats;
