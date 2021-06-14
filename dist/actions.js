@@ -322,7 +322,7 @@ var getClassesFiltered = function (request, response) { return __awaiter(void 0,
                 hora_inicio = moment_1["default"]();
                 if (request.query.hora_inicio && typeof request.query.hora_inicio === 'string' && moment_1["default"](request.query.hora_inicio, formatTime).isValid()) {
                     hora_inicio = moment_1["default"](request.query.hora_inicio, formatTime);
-                    Object.assign(where, { hora_inicio: typeorm_1.MoreThan(hora_inicio.format(formatTime)) });
+                    Object.assign(where, { hora_inicio: typeorm_1.MoreThanOrEqual(hora_inicio.format(formatTime)) });
                 }
                 return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).find({
                         where: where,
@@ -596,12 +596,16 @@ var getInscripciones = function (clase) { return __awaiter(void 0, void 0, void 
     });
 }); };
 var valorate = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
-    var comentario, usuario, docente, val, clase;
+    var comentario, usuario, docente, val, result_1, clase, newValoration, result;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 if (!request.body.valoracion)
                     throw new utils_1.Exception('Falta la valoracion del docente');
+                if (typeof request.body.valoracion != 'number' && !validator_1["default"].isNumeric(request.body.valoracion))
+                    throw new utils_1.Exception('Valoracion invalida');
+                if (request.body.valoracion > 5 || 1 > request.body.valoracion)
+                    throw new utils_1.Exception('La vaiidacion debe estar entre 1 y 5');
                 if (!request.body.id)
                     throw new utils_1.Exception('Falta el id del docente a valorar');
                 comentario = null;
@@ -621,22 +625,39 @@ var valorate = function (request, response) { return __awaiter(void 0, void 0, v
                 docente = _a.sent();
                 if (!docente)
                     throw new utils_1.Exception('No se encontro el docente');
+                if (usuario.id === docente.id)
+                    throw new utils_1.Exception('No puedes valorarte a ti mismo');
                 return [4 /*yield*/, typeorm_1.getRepository(Valoracion_1.Valoracion).findOne({
                         where: { valorado: docente, valorador: usuario }
                     })];
             case 3:
                 val = _a.sent();
-                if (val)
-                    throw new utils_1.Exception('Ya existe una valoracion al docente');
-                return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
-                        .innerJoin("clase.inscripciones", "inscripciones")
-                        .where("clase.profesor = :profesor", { profesor: docente.id })
-                        .andWhere("inscripciones.usuario = :usuario", { usuario: usuario.id })
-                        .getOne()];
+                if (!val) return [3 /*break*/, 5];
+                val.comentario = comentario;
+                val.valoracion = request.body.valoracion;
+                return [4 /*yield*/, typeorm_1.getRepository(Valoracion_1.Valoracion).save(val)];
             case 4:
+                result_1 = _a.sent();
+                return [2 /*return*/, response.json(result_1)];
+            case 5: return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
+                    .innerJoin("clase.inscripciones", "inscripciones")
+                    .where("clase.profesor = :profesor", { profesor: docente.id })
+                    .andWhere("inscripciones.usuario = :usuario", { usuario: usuario.id })
+                    .getOne()];
+            case 6:
                 clase = _a.sent();
-                console.log(clase);
-                return [2 /*return*/, response.json()];
+                if (!clase)
+                    throw new utils_1.Exception('Debes participar al menos de una clase del docente a valorar');
+                newValoration = typeorm_1.getRepository(Valoracion_1.Valoracion).create({
+                    valoracion: request.body.valoracion,
+                    comentario: comentario,
+                    valorado: docente,
+                    valorador: usuario
+                });
+                return [4 /*yield*/, typeorm_1.getRepository(Valoracion_1.Valoracion).save(newValoration)];
+            case 7:
+                result = _a.sent();
+                return [2 /*return*/, response.json(result)];
         }
     });
 }); };

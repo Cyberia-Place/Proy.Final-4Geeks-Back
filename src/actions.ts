@@ -190,7 +190,7 @@ export const getClassesFiltered = async (request: Request, response: Response): 
     let hora_inicio = moment();
     if (request.query.hora_inicio && typeof request.query.hora_inicio === 'string' && moment(request.query.hora_inicio, formatTime).isValid()) {
         hora_inicio = moment(request.query.hora_inicio, formatTime);
-        Object.assign(where, { hora_inicio: MoreThan(hora_inicio.format(formatTime)) });
+        Object.assign(where, { hora_inicio: MoreThanOrEqual(hora_inicio.format(formatTime)) });
     }
 
     let clases = await getRepository(Clase).find({
@@ -426,6 +426,8 @@ const getInscripciones = async (clase: Clase) => {
 
 export const valorate = async (request: Request, response: Response): Promise<Response> => {
     if (!request.body.valoracion) throw new Exception('Falta la valoracion del docente');
+    if (typeof request.body.valoracion != 'number' && !validator.isNumeric(request.body.valoracion)) throw new Exception('Valoracion invalida');
+    if (request.body.valoracion > 5 || 1 > request.body.valoracion) throw new Exception('La vaiidacion debe estar entre 1 y 5');
     if (!request.body.id) throw new Exception('Falta el id del docente a valorar');
 
     let comentario = null;
@@ -443,19 +445,37 @@ export const valorate = async (request: Request, response: Response): Promise<Re
 
     if (!docente) throw new Exception('No se encontro el docente');
 
+    if (usuario.id === docente.id) throw new Exception('No puedes valorarte a ti mismo');
+
     let val = await getRepository(Valoracion).findOne({
         where: { valorado: docente, valorador: usuario }
     });
 
-    if(val) throw new Exception('Ya existe una valoracion al docente');
+    if (val) {
+        val.comentario = comentario;
+        val.valoracion = request.body.valoracion;
+
+        let result = await getRepository(Valoracion).save(val);
+
+        return response.json(result);
+    }
 
     let clase = await getRepository(Clase).createQueryBuilder("clase")
-    .innerJoin("clase.inscripciones", "inscripciones")
-    .where("clase.profesor = :profesor", {profesor: docente.id})
-    .andWhere("inscripciones.usuario = :usuario", {usuario: usuario.id})
-    .getOne();
+        .innerJoin("clase.inscripciones", "inscripciones")
+        .where("clase.profesor = :profesor", { profesor: docente.id })
+        .andWhere("inscripciones.usuario = :usuario", { usuario: usuario.id })
+        .getOne();
 
-    console.log(clase);
+    if (!clase) throw new Exception('Debes participar al menos de una clase del docente a valorar');
 
-    return response.json();
+    let newValoration = getRepository(Valoracion).create({
+        valoracion: request.body.valoracion,
+        comentario,
+        valorado: docente,
+        valorador: usuario
+    });
+
+    let result = await getRepository(Valoracion).save(newValoration);
+
+    return response.json(result);
 }

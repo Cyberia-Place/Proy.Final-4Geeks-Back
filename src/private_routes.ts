@@ -21,7 +21,7 @@ const router = Router();
 
 const auth = (request: Request, response: Response, next: NextFunction) => {
     let token = request.header('Authorization');
-    if(!token) throw new Exception('Acceso Denegado');
+    if (!token) throw new Exception('Acceso Denegado');
 
     let decoded;
 
@@ -30,7 +30,7 @@ const auth = (request: Request, response: Response, next: NextFunction) => {
     } catch (error) {
     }
 
-    if(!decoded) throw new Exception('Invalid token');
+    if (!decoded) throw new Exception('Invalid token');
 
     Object.assign(request.body, decoded);
 
@@ -60,5 +60,8 @@ router.post('/class', auth, safe(actions.createClass));
 
 // Ruta para inscribirse a una clase
 router.post('/enroll', auth, safe(actions.enroll));
+
+// Ruta para valorar un docente
+router.post('/valorate', auth, safe(actions.valorate));
 
 export default router;

@@ -71,4 +71,6 @@ router.get('/class', auth, utils_1.safe(actions.getClass));
 router.post('/class', auth, utils_1.safe(actions.createClass));
 // Ruta para inscribirse a una clase
 router.post('/enroll', auth, utils_1.safe(actions.enroll));
+// Ruta para valorar un docente
+router.post('/valorate', auth, utils_1.safe(actions.valorate));
 exports["default"] = router;
