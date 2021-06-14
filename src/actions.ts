@@ -499,6 +499,91 @@ const getValoracionUsuario = async (idUsuario: number) => {
     return valoracion;
 }
 
+const getEnClase = async (idUsuario: number) => {
+    let res = await getRepository(Clase).createQueryBuilder("clase")
+        .select("SUM(clase.hora_fin - clase.hora_inicio)", "horas")
+        .innerJoin("clase.inscripciones", "inscripciones")
+        .where("inscripciones.usuario = :usuario", { usuario: idUsuario })
+        .andWhere("clase.fecha < :fecha", { fecha: moment().format(formatDate) })
+        .getRawOne();
+
+    let horas_en_clase = 0;
+    if (res.horas) horas_en_clase = res.horas.hours;
+
+    res = await getRepository(Clase).createQueryBuilder("clase")
+        .select("COUNT(clase.id)", "cant")
+        .innerJoin("clase.inscripciones", "inscripciones")
+        .where("inscripciones.usuario = :usuario", { usuario: idUsuario })
+        .andWhere("clase.fecha < :fecha", { fecha: moment().format(formatDate) })
+        .getRawOne();
+
+    let cantidad_en_clase = 0;
+    if (res.cant) cantidad_en_clase = parseInt(res.cant);
+
+    return { cantidad_en_clase, horas_en_clase };
+}
+
+const getDandoClase = async (idUsuario: number) => {
+    let res = await getRepository(Clase).createQueryBuilder("clase")
+        .select("SUM(clase.hora_fin - clase.hora_inicio)", "horas")
+        .where("clase.profesor = :profesor", { profesor: idUsuario })
+        .andWhere("clase.fecha < :fecha", { fecha: moment().format(formatDate) })
+        .getRawOne();
+
+    let horas_clase = 0;
+    if (res.horas) horas_clase = res.horas.hours;
+
+    res = await getRepository(Clase).createQueryBuilder("clase")
+        .select("COUNT(clase.id)", "cant")
+        .where("clase.profesor = :profesor", { profesor: idUsuario })
+        .andWhere("clase.fecha < :fecha", { fecha: moment().format(formatDate) })
+        .getRawOne();
+
+    let cantidad_clase = 0;
+    if (res.cant) cantidad_clase = parseInt(res.cant);
+
+    return { horas_clase, cantidad_clase };
+}
+
+const getInterests = async (idUsuario: number) => {
+    let interests: Categoria[] = [];
+
+    let subQuery = getRepository(Clase).createQueryBuilder("clase")
+        .select("categorias.id", "id")
+        .innerJoin("clase.inscripciones", "inscripciones")
+        .innerJoin("clase.categorias", "categorias")
+        .where("inscripciones.usuario = :usuario")
+        .andWhere("clase.fecha < :fecha")
+        .distinct(true);
+
+    let res = await getRepository(Categoria).createQueryBuilder("categoria")
+        .where("categoria.id IN (" + subQuery.getSql() + ")", { usuario: idUsuario, fecha: moment().format(formatDate) })
+        .getMany();
+
+    interests = res;
+
+    return interests;
+}
+
+const getKnowledge = async (idUsuario: number) => {
+    let knowledge: Categoria[] = [];
+
+    let subQuery = getRepository(Clase).createQueryBuilder("clase")
+        .select("categorias.id", "id")
+        .innerJoin("clase.categorias", "categorias")
+        .where("clase.profesor = :usuario")
+        .andWhere("clase.fecha < :fecha")
+        .distinct(true);
+
+    let res = await getRepository(Categoria).createQueryBuilder("categoria")
+        .where("categoria.id IN (" + subQuery.getSql() + ")", { usuario: idUsuario, fecha: moment().format(formatDate) })
+        .getMany();
+
+    knowledge = res;
+
+    return knowledge;
+}
+
 export const getUserStats = async (request: Request, response: Response): Promise<Response> => {
     let idUsuario = request.body.usuario.id;
     if (request.params.id) idUsuario = request.params.id;
@@ -511,53 +596,25 @@ export const getUserStats = async (request: Request, response: Response): Promis
 
     let valoracion = await getValoracionUsuario(usuario.id);
 
-    let res = await getRepository(Clase).createQueryBuilder("clase")
-        .select("SUM(clase.hora_fin - clase.hora_inicio)", "horas")
-        .where("clase.profesor = :profesor", { profesor: usuario.id })
-        .andWhere("clase.fecha < :fecha", { fecha: moment().format(formatDate) })
-        .getRawOne();
+    let dandoClase = await getDandoClase(usuario.id);
 
-    let horas_clase = 0;
-    if (res.horas) horas_clase = res.horas.hours;
+    let enClase = await getEnClase(usuario.id);
 
-    res = await getRepository(Clase).createQueryBuilder("clase")
-        .select("COUNT(clase.id)", "cant")
-        .where("clase.profesor = :profesor", { profesor: usuario.id })
-        .andWhere("clase.fecha < :fecha", { fecha: moment().format(formatDate) })
-        .getRawOne();
+    let interests = await getInterests(usuario.id);
 
-    let cantidad_clase = 0;
-    if (res.cant) cantidad_clase = parseInt(res.cant);
-
-    res = await getRepository(Clase).createQueryBuilder("clase")
-        .select("SUM(clase.hora_fin - clase.hora_inicio)", "horas")
-        .innerJoin("clase.inscripciones", "inscripciones")
-        .where("inscripciones.usuario = :usuario", { usuario: usuario.id })
-        .andWhere("clase.fecha < :fecha", { fecha: moment().format(formatDate) })
-        .getRawOne();
-
-    let horas_en_clase = 0;
-    if (res.horas) horas_en_clase = res.horas.hours;
-
-    res = await getRepository(Clase).createQueryBuilder("clase")
-        .select("COUNT(clase.id)", "cant")
-        .innerJoin("clase.inscripciones", "inscripciones")
-        .where("inscripciones.usuario = :usuario", { usuario: usuario.id })
-        .andWhere("clase.fecha < :fecha", { fecha: moment().format(formatDate) })
-        .getRawOne();
-
-    let cantidad_en_clase = 0;
-    if (res.cant) cantidad_en_clase = parseInt(res.cant);
+    let knowledge = await getKnowledge(usuario.id);
 
     let result = {
         enseniando: {
             valoracion,
-            horas_clase,
-            cantidad_clase
+            horas_clase: dandoClase.horas_clase,
+            cantidad_clase: dandoClase.cantidad_clase,
+            knowledge
         },
         aprendiendo: {
-            cantidad_en_clase,
-            horas_en_clase
+            cantidad_en_clase: enClase.cantidad_en_clase,
+            horas_en_clase: enClase.horas_en_clase,
+            interests
         }
     }
 

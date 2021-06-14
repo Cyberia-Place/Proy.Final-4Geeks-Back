@@ -716,8 +716,111 @@ var getValoracionUsuario = function (idUsuario) { return __awaiter(void 0, void 
         }
     });
 }); };
+var getEnClase = function (idUsuario) { return __awaiter(void 0, void 0, void 0, function () {
+    var res, horas_en_clase, cantidad_en_clase;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
+                    .select("SUM(clase.hora_fin - clase.hora_inicio)", "horas")
+                    .innerJoin("clase.inscripciones", "inscripciones")
+                    .where("inscripciones.usuario = :usuario", { usuario: idUsuario })
+                    .andWhere("clase.fecha < :fecha", { fecha: moment_1["default"]().format(formatDate) })
+                    .getRawOne()];
+            case 1:
+                res = _a.sent();
+                horas_en_clase = 0;
+                if (res.horas)
+                    horas_en_clase = res.horas.hours;
+                return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
+                        .select("COUNT(clase.id)", "cant")
+                        .innerJoin("clase.inscripciones", "inscripciones")
+                        .where("inscripciones.usuario = :usuario", { usuario: idUsuario })
+                        .andWhere("clase.fecha < :fecha", { fecha: moment_1["default"]().format(formatDate) })
+                        .getRawOne()];
+            case 2:
+                res = _a.sent();
+                cantidad_en_clase = 0;
+                if (res.cant)
+                    cantidad_en_clase = parseInt(res.cant);
+                return [2 /*return*/, { cantidad_en_clase: cantidad_en_clase, horas_en_clase: horas_en_clase }];
+        }
+    });
+}); };
+var getDandoClase = function (idUsuario) { return __awaiter(void 0, void 0, void 0, function () {
+    var res, horas_clase, cantidad_clase;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
+                    .select("SUM(clase.hora_fin - clase.hora_inicio)", "horas")
+                    .where("clase.profesor = :profesor", { profesor: idUsuario })
+                    .andWhere("clase.fecha < :fecha", { fecha: moment_1["default"]().format(formatDate) })
+                    .getRawOne()];
+            case 1:
+                res = _a.sent();
+                horas_clase = 0;
+                if (res.horas)
+                    horas_clase = res.horas.hours;
+                return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
+                        .select("COUNT(clase.id)", "cant")
+                        .where("clase.profesor = :profesor", { profesor: idUsuario })
+                        .andWhere("clase.fecha < :fecha", { fecha: moment_1["default"]().format(formatDate) })
+                        .getRawOne()];
+            case 2:
+                res = _a.sent();
+                cantidad_clase = 0;
+                if (res.cant)
+                    cantidad_clase = parseInt(res.cant);
+                return [2 /*return*/, { horas_clase: horas_clase, cantidad_clase: cantidad_clase }];
+        }
+    });
+}); };
+var getInterests = function (idUsuario) { return __awaiter(void 0, void 0, void 0, function () {
+    var interests, subQuery, res;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                interests = [];
+                subQuery = typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
+                    .select("categorias.id", "id")
+                    .innerJoin("clase.inscripciones", "inscripciones")
+                    .innerJoin("clase.categorias", "categorias")
+                    .where("inscripciones.usuario = :usuario")
+                    .andWhere("clase.fecha < :fecha")
+                    .distinct(true);
+                return [4 /*yield*/, typeorm_1.getRepository(Categoria_1.Categoria).createQueryBuilder("categoria")
+                        .where("categoria.id IN (" + subQuery.getSql() + ")", { usuario: idUsuario, fecha: moment_1["default"]().format(formatDate) })
+                        .getMany()];
+            case 1:
+                res = _a.sent();
+                interests = res;
+                return [2 /*return*/, interests];
+        }
+    });
+}); };
+var getKnowledge = function (idUsuario) { return __awaiter(void 0, void 0, void 0, function () {
+    var knowledge, subQuery, res;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                knowledge = [];
+                subQuery = typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
+                    .select("categorias.id", "id")
+                    .innerJoin("clase.categorias", "categorias")
+                    .where("clase.profesor = :usuario")
+                    .andWhere("clase.fecha < :fecha")
+                    .distinct(true);
+                return [4 /*yield*/, typeorm_1.getRepository(Categoria_1.Categoria).createQueryBuilder("categoria")
+                        .where("categoria.id IN (" + subQuery.getSql() + ")", { usuario: idUsuario, fecha: moment_1["default"]().format(formatDate) })
+                        .getMany()];
+            case 1:
+                res = _a.sent();
+                knowledge = res;
+                return [2 /*return*/, knowledge];
+        }
+    });
+}); };
 var getUserStats = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
-    var idUsuario, usuario, valoracion, res, horas_clase, cantidad_clase, horas_en_clase, cantidad_en_clase, result;
+    var idUsuario, usuario, valoracion, dandoClase, enClase, interests, knowledge, result;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -734,57 +837,29 @@ var getUserStats = function (request, response) { return __awaiter(void 0, void 
                 return [4 /*yield*/, getValoracionUsuario(usuario.id)];
             case 2:
                 valoracion = _a.sent();
-                return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
-                        .select("SUM(clase.hora_fin - clase.hora_inicio)", "horas")
-                        .where("clase.profesor = :profesor", { profesor: usuario.id })
-                        .andWhere("clase.fecha < :fecha", { fecha: moment_1["default"]().format(formatDate) })
-                        .getRawOne()];
+                return [4 /*yield*/, getDandoClase(usuario.id)];
             case 3:
-                res = _a.sent();
-                horas_clase = 0;
-                if (res.horas)
-                    horas_clase = res.horas.hours;
-                return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
-                        .select("COUNT(clase.id)", "cant")
-                        .where("clase.profesor = :profesor", { profesor: usuario.id })
-                        .andWhere("clase.fecha < :fecha", { fecha: moment_1["default"]().format(formatDate) })
-                        .getRawOne()];
+                dandoClase = _a.sent();
+                return [4 /*yield*/, getEnClase(usuario.id)];
             case 4:
-                res = _a.sent();
-                cantidad_clase = 0;
-                if (res.cant)
-                    cantidad_clase = parseInt(res.cant);
-                return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
-                        .select("SUM(clase.hora_fin - clase.hora_inicio)", "horas")
-                        .innerJoin("clase.inscripciones", "inscripciones")
-                        .where("inscripciones.usuario = :usuario", { usuario: usuario.id })
-                        .andWhere("clase.fecha < :fecha", { fecha: moment_1["default"]().format(formatDate) })
-                        .getRawOne()];
+                enClase = _a.sent();
+                return [4 /*yield*/, getInterests(usuario.id)];
             case 5:
-                res = _a.sent();
-                horas_en_clase = 0;
-                if (res.horas)
-                    horas_en_clase = res.horas.hours;
-                return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
-                        .select("COUNT(clase.id)", "cant")
-                        .innerJoin("clase.inscripciones", "inscripciones")
-                        .where("inscripciones.usuario = :usuario", { usuario: usuario.id })
-                        .andWhere("clase.fecha < :fecha", { fecha: moment_1["default"]().format(formatDate) })
-                        .getRawOne()];
+                interests = _a.sent();
+                return [4 /*yield*/, getKnowledge(usuario.id)];
             case 6:
-                res = _a.sent();
-                cantidad_en_clase = 0;
-                if (res.cant)
-                    cantidad_en_clase = parseInt(res.cant);
+                knowledge = _a.sent();
                 result = {
                     enseniando: {
                         valoracion: valoracion,
-                        horas_clase: horas_clase,
-                        cantidad_clase: cantidad_clase
+                        horas_clase: dandoClase.horas_clase,
+                        cantidad_clase: dandoClase.cantidad_clase,
+                        knowledge: knowledge
                     },
                     aprendiendo: {
-                        cantidad_en_clase: cantidad_en_clase,
-                        horas_en_clase: horas_en_clase
+                        cantidad_en_clase: enClase.cantidad_en_clase,
+                        horas_en_clase: enClase.horas_en_clase,
+                        interests: interests
                     }
                 };
                 return [2 /*return*/, response.json(result)];
