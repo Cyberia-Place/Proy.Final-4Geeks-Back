@@ -1,5 +1,5 @@
 import { Request, Response } from 'express'
-import { getRepository, MoreThanOrEqual, MoreThan } from 'typeorm'  // getRepository"  traer una tabla de la base de datos asociada al objeto
+import { getRepository, MoreThanOrEqual, MoreThan, Not } from 'typeorm'  // getRepository"  traer una tabla de la base de datos asociada al objeto
 import { Exception } from './utils'
 import { Usuario } from './entities/Usuario';
 import jwt from 'jsonwebtoken';
@@ -152,7 +152,7 @@ export const createCategory = async (request: Request, response: Response): Prom
 
 export const getClasses = async (request: Request, response: Response): Promise<Response> => {
     let clases = await getRepository(Clase).find({
-        where: { fecha: MoreThan(moment().format(formatDate)) },
+        where: { fecha: MoreThan(moment().format(formatDate)), profesor: Not(request.body.usuario.id)},
         relations: ['profesor', 'categorias']
     });
 
@@ -189,7 +189,7 @@ export const getClassesFiltered = async (request: Request, response: Response): 
         }
     }
 
-    let where = { fecha: compareDay.format(formatDate) };
+    let where = { fecha: compareDay.format(formatDate), profesor: Not(request.body.usuario.id)};
 
     let hora_inicio = moment();
     if (request.query.hora_inicio && typeof request.query.hora_inicio === 'string' && moment(request.query.hora_inicio, formatTime).isValid()) {
@@ -619,4 +619,85 @@ export const getUserStats = async (request: Request, response: Response): Promis
     }
 
     return response.json(result);
+}
+
+const getNextClases = async (idUsuario: number) => {
+    let res = await getRepository(Clase).createQueryBuilder("clase")
+        .innerJoin("clase.inscripciones", "inscripciones")
+        .innerJoinAndSelect("clase.profesor", "profesor")
+        .where("inscripciones.usuario = :usuario", { usuario: idUsuario })
+        .andWhere("clase.fecha > :fecha", { fecha: moment().format(formatDate) })
+        .orderBy({
+            "clase.fecha": "ASC",
+            "clase.hora_inicio": "ASC"
+        })
+        .limit(3)
+        .getMany();
+
+    let result = [];
+    for (let i = 0; i < res.length; i++) {
+        result.push({
+            id: res[i].id,
+            hora_inicio: res[i].hora_inicio,
+            hora_fin: res[i].hora_fin,
+            fecha: res[i].fecha,
+            nombre: res[i].nombre,
+            profesor: {
+                id: res[i].profesor.id,
+                nombre: res[i].profesor.nombre,
+            }
+        });
+    }
+
+    return result;
+}
+
+const getPreviousClases = async (idUsuario: number) => {
+    let res = await getRepository(Clase).createQueryBuilder("clase")
+        .innerJoin("clase.inscripciones", "inscripciones")
+        .innerJoinAndSelect("clase.profesor", "profesor")
+        .where("inscripciones.usuario = :usuario", { usuario: idUsuario })
+        .andWhere("clase.fecha < :fecha", { fecha: moment().format(formatDate) })
+        .orderBy({
+            "clase.fecha": "DESC",
+            "clase.hora_inicio": "DESC"
+        })
+        .limit(3)
+        .getMany();
+
+    let result = [];
+    for (let i = 0; i < res.length; i++) {
+        result.push({
+            id: res[i].id,
+            hora_inicio: res[i].hora_inicio,
+            hora_fin: res[i].hora_fin,
+            fecha: res[i].fecha,
+            nombre: res[i].nombre,
+            profesor: {
+                id: res[i].profesor.id,
+                nombre: res[i].profesor.nombre,
+            }
+        });
+    }
+
+    return result;
+}
+
+export const getUserClases = async (request: Request, response: Response): Promise<Response> => {
+    let nextClases = await getNextClases(request.body.usuario.id);
+    let previousClases = await getPreviousClases(request.body.usuario.id);
+    return response.json({nextClases, previousClases});
+}
+
+export const getNextClasesDocente = async (request: Request, response: Response): Promise<Response> => {
+    let res = await getRepository(Clase).createQueryBuilder("clase")
+        .where("clase.profesor = :usuario", { usuario: request.body.usuario.id })
+        .andWhere("clase.fecha > :fecha", { fecha: moment().format(formatDate) })
+        .orderBy({
+            "clase.fecha": "ASC",
+            "clase.hora_inicio": "ASC"
+        })
+        .getMany();
+
+    return response.json(res);
 }

@@ -39,7 +39,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-exports.getUserStats = exports.valorate = exports.getClass = exports.enroll = exports.createClass = exports.getClassesFiltered = exports.getClasses = exports.createCategory = exports.getCategories = exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
+exports.getNextClasesDocente = exports.getUserClases = exports.getUserStats = exports.valorate = exports.getClass = exports.enroll = exports.createClass = exports.getClassesFiltered = exports.getClasses = exports.createCategory = exports.getCategories = exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
 var typeorm_1 = require("typeorm"); // getRepository"  traer una tabla de la base de datos asociada al objeto
 var utils_1 = require("./utils");
 var Usuario_1 = require("./entities/Usuario");
@@ -281,7 +281,7 @@ var getClasses = function (request, response) { return __awaiter(void 0, void 0,
     return __generator(this, function (_e) {
         switch (_e.label) {
             case 0: return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).find({
-                    where: { fecha: typeorm_1.MoreThan(moment_1["default"]().format(formatDate)) },
+                    where: { fecha: typeorm_1.MoreThan(moment_1["default"]().format(formatDate)), profesor: typeorm_1.Not(request.body.usuario.id) },
                     relations: ['profesor', 'categorias']
                 })];
             case 1:
@@ -336,7 +336,7 @@ var getClassesFiltered = function (request, response) { return __awaiter(void 0,
                         compareDay = moment_1["default"]().add(1, 'weeks').isoWeekday(week_day);
                     }
                 }
-                where = { fecha: compareDay.format(formatDate) };
+                where = { fecha: compareDay.format(formatDate), profesor: typeorm_1.Not(request.body.usuario.id) };
                 hora_inicio = moment_1["default"]();
                 if (request.query.hora_inicio && typeof request.query.hora_inicio === 'string' && moment_1["default"](request.query.hora_inicio, formatTime).isValid()) {
                     hora_inicio = moment_1["default"](request.query.hora_inicio, formatTime);
@@ -867,3 +867,107 @@ var getUserStats = function (request, response) { return __awaiter(void 0, void 
     });
 }); };
 exports.getUserStats = getUserStats;
+var getNextClases = function (idUsuario) { return __awaiter(void 0, void 0, void 0, function () {
+    var res, result, i;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
+                    .innerJoin("clase.inscripciones", "inscripciones")
+                    .innerJoinAndSelect("clase.profesor", "profesor")
+                    .where("inscripciones.usuario = :usuario", { usuario: idUsuario })
+                    .andWhere("clase.fecha > :fecha", { fecha: moment_1["default"]().format(formatDate) })
+                    .orderBy({
+                    "clase.fecha": "ASC",
+                    "clase.hora_inicio": "ASC"
+                })
+                    .limit(3)
+                    .getMany()];
+            case 1:
+                res = _a.sent();
+                result = [];
+                for (i = 0; i < res.length; i++) {
+                    result.push({
+                        id: res[i].id,
+                        hora_inicio: res[i].hora_inicio,
+                        hora_fin: res[i].hora_fin,
+                        fecha: res[i].fecha,
+                        nombre: res[i].nombre,
+                        profesor: {
+                            id: res[i].profesor.id,
+                            nombre: res[i].profesor.nombre
+                        }
+                    });
+                }
+                return [2 /*return*/, result];
+        }
+    });
+}); };
+var getPreviousClases = function (idUsuario) { return __awaiter(void 0, void 0, void 0, function () {
+    var res, result, i;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
+                    .innerJoin("clase.inscripciones", "inscripciones")
+                    .innerJoinAndSelect("clase.profesor", "profesor")
+                    .where("inscripciones.usuario = :usuario", { usuario: idUsuario })
+                    .andWhere("clase.fecha < :fecha", { fecha: moment_1["default"]().format(formatDate) })
+                    .orderBy({
+                    "clase.fecha": "DESC",
+                    "clase.hora_inicio": "DESC"
+                })
+                    .limit(3)
+                    .getMany()];
+            case 1:
+                res = _a.sent();
+                result = [];
+                for (i = 0; i < res.length; i++) {
+                    result.push({
+                        id: res[i].id,
+                        hora_inicio: res[i].hora_inicio,
+                        hora_fin: res[i].hora_fin,
+                        fecha: res[i].fecha,
+                        nombre: res[i].nombre,
+                        profesor: {
+                            id: res[i].profesor.id,
+                            nombre: res[i].profesor.nombre
+                        }
+                    });
+                }
+                return [2 /*return*/, result];
+        }
+    });
+}); };
+var getUserClases = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var nextClases, previousClases;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, getNextClases(request.body.usuario.id)];
+            case 1:
+                nextClases = _a.sent();
+                return [4 /*yield*/, getPreviousClases(request.body.usuario.id)];
+            case 2:
+                previousClases = _a.sent();
+                return [2 /*return*/, response.json({ nextClases: nextClases, previousClases: previousClases })];
+        }
+    });
+}); };
+exports.getUserClases = getUserClases;
+var getNextClasesDocente = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var res;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
+                    .where("clase.profesor = :usuario", { usuario: request.body.usuario.id })
+                    .andWhere("clase.fecha > :fecha", { fecha: moment_1["default"]().format(formatDate) })
+                    .orderBy({
+                    "clase.fecha": "ASC",
+                    "clase.hora_inicio": "ASC"
+                })
+                    .getMany()];
+            case 1:
+                res = _a.sent();
+                return [2 /*return*/, response.json(res)];
+        }
+    });
+}); };
+exports.getNextClasesDocente = getNextClasesDocente;

@@ -79,4 +79,8 @@ router.post('/class', auth, utils_1.safe(actions.createClass));
 router.post('/enroll', auth, utils_1.safe(actions.enroll));
 // Ruta para valorar un docente
 router.post('/valorate', auth, utils_1.safe(actions.valorate));
+// Ruta para conseguir siguientes clases como alumno
+router.get('/user/nextClases', auth, utils_1.safe(actions.getUserClases));
+// Ruta para conseguir siguientes clases como profesor
+router.get('/teacher/nextClases', auth, utils_1.safe(actions.getNextClasesDocente));
 exports["default"] = router;
