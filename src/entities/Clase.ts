@@ -31,4 +31,6 @@ export class Clase extends BaseEntity {
     @OneToMany(() => Inscripcion, inscripcion => inscripcion.clase)
     inscripciones: Inscripcion[];
 
+    @Column({ default: 0 })
+    precio: number;
 }

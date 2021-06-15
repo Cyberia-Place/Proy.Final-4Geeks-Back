@@ -67,6 +67,10 @@ var Clase = /** @class */ (function (_super) {
         typeorm_1.OneToMany(function () { return Inscripcion_1.Inscripcion; }, function (inscripcion) { return inscripcion.clase; }),
         __metadata("design:type", Array)
     ], Clase.prototype, "inscripciones");
+    __decorate([
+        typeorm_1.Column({ "default": 0 }),
+        __metadata("design:type", Number)
+    ], Clase.prototype, "precio");
     Clase = __decorate([
         typeorm_1.Entity('clases')
     ], Clase);

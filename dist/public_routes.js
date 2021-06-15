@@ -38,4 +38,8 @@ router.post('/login', utils_1.safe(actions.logIn));
 router.get('/categories', utils_1.safe(actions.getCategories));
 // Ruta para crear una categoria
 router.post('/category', utils_1.safe(actions.createCategory));
+// Ruta para solicitar cambio de contrasenia
+router.post('/forgot-password', utils_1.safe(actions.forgotPassword));
+// Ruta para cambio de contrasenia
+router.post('/reset-password', utils_1.safe(actions.resetPassword));
 exports["default"] = router;

@@ -11,6 +11,14 @@ import moment from 'moment';
 import { Inscripcion } from './entities/Inscripcion';
 import { Valoracion } from './entities/Valoracion';
 
+import NodeMailer from 'nodemailer';
+import { google } from 'googleapis';
+
+const CLIENT_ID = '523495534246-82a3b5ppmb2gb4vhs67drgvf6ei7bv48.apps.googleusercontent.com';
+const CLIENT_SECRET = '_bVK0pqOjZuRjY8mLq8rpTXX';
+const REDIRECT_URI = 'https://developers.google.com/oauthplayground';
+const REFRESH_TOKEN = '1//044lTzXTNmUy1CgYIARAAGAQSNwF-L9Ir68LZL8aUo8IpWKGkPBjtdwLH9un3ZuuDgFFZMVrUWjRHnA5kZqRWNlIg62sjdfrIOjE';
+
 let formatTime = 'LT';
 let formatDate = 'YYYY-MM-DD';
 
@@ -152,7 +160,7 @@ export const createCategory = async (request: Request, response: Response): Prom
 
 export const getClasses = async (request: Request, response: Response): Promise<Response> => {
     let clases = await getRepository(Clase).find({
-        where: { fecha: MoreThan(moment().format(formatDate)), profesor: Not(request.body.usuario.id)},
+        where: { fecha: MoreThan(moment().format(formatDate)), profesor: Not(request.body.usuario.id) },
         relations: ['profesor', 'categorias']
     });
 
@@ -189,7 +197,7 @@ export const getClassesFiltered = async (request: Request, response: Response): 
         }
     }
 
-    let where = { fecha: compareDay.format(formatDate), profesor: Not(request.body.usuario.id)};
+    let where = { fecha: compareDay.format(formatDate), profesor: Not(request.body.usuario.id) };
 
     let hora_inicio = moment();
     if (request.query.hora_inicio && typeof request.query.hora_inicio === 'string' && moment(request.query.hora_inicio, formatTime).isValid()) {
@@ -686,7 +694,7 @@ const getPreviousClases = async (idUsuario: number) => {
 export const getUserClases = async (request: Request, response: Response): Promise<Response> => {
     let nextClases = await getNextClases(request.body.usuario.id);
     let previousClases = await getPreviousClases(request.body.usuario.id);
-    return response.json({nextClases, previousClases});
+    return response.json({ nextClases, previousClases });
 }
 
 export const getNextClasesDocente = async (request: Request, response: Response): Promise<Response> => {
@@ -700,4 +708,92 @@ export const getNextClasesDocente = async (request: Request, response: Response)
         .getMany();
 
     return response.json(res);
+}
+
+export const forgotPassword = async (request: Request, response: Response): Promise<Response> => {
+    if (!request.body.email) throw new Exception('Falta el email del usuario');
+
+    let usuario = await getRepository(Usuario).findOne({
+        where: { email: request.body.email }
+    });
+
+    if (!usuario) throw new Exception('No se encontro el usuario');
+
+    let payLoad = {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        email: usuario.email
+    }
+    let token = jwt.sign({ usuario: payLoad }, process.env.JWT_KEY as string, { expiresIn: '15m' });
+
+    let url = process.env.FRONT_URL + '/reset-password/' + token;
+
+    sendMail(url).then(result => console.log(result)).catch(error => console.log(error));
+
+    return response.json(url);
+}
+
+export const resetPassword = async (request: Request, response: Response): Promise<Response> => {
+    if (!request.body.token) throw new Exception('Acceso Denegado');
+    if (!request.body.nuevaContrasenia) throw new Exception('Falta la nueva contrasenia');
+
+    let payload;
+
+    try {
+        payload = jwt.verify(request.body.token, process.env.JWT_KEY as string);
+    } catch (error) {
+    }
+
+    if (!payload) throw new Exception('Invalid token');
+    Object.assign(request.body, payload);
+
+    let usuario = await getRepository(Usuario).findOne(request.body.usuario.id);
+
+    if (!usuario) throw new Exception('No se encontro el usuario');
+
+    // Hash de password
+    let salt = await bcrypt.genSalt();
+    let hashedPassword = await bcrypt.hash(request.body.nuevaContrasenia, salt);
+
+    usuario.contrasenia = hashedPassword;
+
+    let result = await getRepository(Usuario).save(usuario);
+
+    return response.json(result);
+}
+
+const sendMail = async (data: string) => {
+    let oAuth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
+    oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+
+    try {
+        const accessToken = await oAuth2Client.getAccessToken();
+        const transport = NodeMailer.createTransport({
+            service: 'gmail',
+            auth: {
+                type: 'OAuth2',
+                user: 'webviclass@gmail.com',
+                clientId: CLIENT_ID,
+                clientSecret: CLIENT_SECRET,
+                refreshToken: REFRESH_TOKEN,
+                accessToken: accessToken
+            }
+        } as NodeMailer.TransportOptions);
+
+        const mailOptions = {
+            from: 'Viclass <webviclass@gmail.com>',
+            to: 'aguperaza458@gmail.com',
+            subject: 'Reset password link',
+            text: `Reset link: ${data}`,
+            html: `<h1>Reset link</h1>
+                <a>${data}</a>
+            `,
+        }
+
+        const result = transport.sendMail(mailOptions);
+        return result;
+
+    } catch (error) {
+        return error;
+    }
 }

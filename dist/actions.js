@@ -39,7 +39,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-exports.getNextClasesDocente = exports.getUserClases = exports.getUserStats = exports.valorate = exports.getClass = exports.enroll = exports.createClass = exports.getClassesFiltered = exports.getClasses = exports.createCategory = exports.getCategories = exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
+exports.resetPassword = exports.forgotPassword = exports.getNextClasesDocente = exports.getUserClases = exports.getUserStats = exports.valorate = exports.getClass = exports.enroll = exports.createClass = exports.getClassesFiltered = exports.getClasses = exports.createCategory = exports.getCategories = exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
 var typeorm_1 = require("typeorm"); // getRepository"  traer una tabla de la base de datos asociada al objeto
 var utils_1 = require("./utils");
 var Usuario_1 = require("./entities/Usuario");
@@ -51,6 +51,12 @@ var validator_1 = __importDefault(require("validator"));
 var moment_1 = __importDefault(require("moment"));
 var Inscripcion_1 = require("./entities/Inscripcion");
 var Valoracion_1 = require("./entities/Valoracion");
+var nodemailer_1 = __importDefault(require("nodemailer"));
+var googleapis_1 = require("googleapis");
+var CLIENT_ID = '523495534246-82a3b5ppmb2gb4vhs67drgvf6ei7bv48.apps.googleusercontent.com';
+var CLIENT_SECRET = '_bVK0pqOjZuRjY8mLq8rpTXX';
+var REDIRECT_URI = 'https://developers.google.com/oauthplayground';
+var REFRESH_TOKEN = '1//044lTzXTNmUy1CgYIARAAGAQSNwF-L9Ir68LZL8aUo8IpWKGkPBjtdwLH9un3ZuuDgFFZMVrUWjRHnA5kZqRWNlIg62sjdfrIOjE';
 var formatTime = 'LT';
 var formatDate = 'YYYY-MM-DD';
 var signUp = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
@@ -971,3 +977,107 @@ var getNextClasesDocente = function (request, response) { return __awaiter(void 
     });
 }); };
 exports.getNextClasesDocente = getNextClasesDocente;
+var forgotPassword = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var usuario, payLoad, token, url;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                if (!request.body.email)
+                    throw new utils_1.Exception('Falta el email del usuario');
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne({
+                        where: { email: request.body.email }
+                    })];
+            case 1:
+                usuario = _a.sent();
+                if (!usuario)
+                    throw new utils_1.Exception('No se encontro el usuario');
+                payLoad = {
+                    id: usuario.id,
+                    nombre: usuario.nombre,
+                    email: usuario.email
+                };
+                token = jsonwebtoken_1["default"].sign({ usuario: payLoad }, process.env.JWT_KEY, { expiresIn: '15m' });
+                url = process.env.FRONT_URL + '/reset-password/' + token;
+                sendMail(url).then(function (result) { return console.log(result); })["catch"](function (error) { return console.log(error); });
+                return [2 /*return*/, response.json(url)];
+        }
+    });
+}); };
+exports.forgotPassword = forgotPassword;
+var resetPassword = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var payload, usuario, salt, hashedPassword, result;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                if (!request.body.token)
+                    throw new utils_1.Exception('Acceso Denegado');
+                if (!request.body.nuevaContrasenia)
+                    throw new utils_1.Exception('Falta la nueva contrasenia');
+                try {
+                    payload = jsonwebtoken_1["default"].verify(request.body.token, process.env.JWT_KEY);
+                }
+                catch (error) {
+                }
+                if (!payload)
+                    throw new utils_1.Exception('Invalid token');
+                Object.assign(request.body, payload);
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne(request.body.usuario.id)];
+            case 1:
+                usuario = _a.sent();
+                if (!usuario)
+                    throw new utils_1.Exception('No se encontro el usuario');
+                return [4 /*yield*/, bcrypt_1["default"].genSalt()];
+            case 2:
+                salt = _a.sent();
+                return [4 /*yield*/, bcrypt_1["default"].hash(request.body.nuevaContrasenia, salt)];
+            case 3:
+                hashedPassword = _a.sent();
+                usuario.contrasenia = hashedPassword;
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).save(usuario)];
+            case 4:
+                result = _a.sent();
+                return [2 /*return*/, response.json(result)];
+        }
+    });
+}); };
+exports.resetPassword = resetPassword;
+var sendMail = function (data) { return __awaiter(void 0, void 0, void 0, function () {
+    var oAuth2Client, accessToken, transport, mailOptions, result, error_1;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                oAuth2Client = new googleapis_1.google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
+                oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+                _a.label = 1;
+            case 1:
+                _a.trys.push([1, 3, , 4]);
+                return [4 /*yield*/, oAuth2Client.getAccessToken()];
+            case 2:
+                accessToken = _a.sent();
+                transport = nodemailer_1["default"].createTransport({
+                    service: 'gmail',
+                    auth: {
+                        type: 'OAuth2',
+                        user: 'webviclass@gmail.com',
+                        clientId: CLIENT_ID,
+                        clientSecret: CLIENT_SECRET,
+                        refreshToken: REFRESH_TOKEN,
+                        accessToken: accessToken
+                    }
+                });
+                mailOptions = {
+                    from: 'Viclass <webviclass@gmail.com>',
+                    to: 'aguperaza458@gmail.com',
+                    subject: 'Reset password link',
+                    text: "Reset link: " + data,
+                    html: "<h1>Reset link</h1>\n                <a>" + data + "</a>\n            "
+                };
+                result = transport.sendMail(mailOptions);
+                return [2 /*return*/, result];
+            case 3:
+                error_1 = _a.sent();
+                return [2 /*return*/, error_1];
+            case 4: return [2 /*return*/];
+        }
+    });
+}); };
