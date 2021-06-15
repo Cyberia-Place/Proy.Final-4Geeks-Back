@@ -53,10 +53,6 @@ var Inscripcion_1 = require("./entities/Inscripcion");
 var Valoracion_1 = require("./entities/Valoracion");
 var nodemailer_1 = __importDefault(require("nodemailer"));
 var googleapis_1 = require("googleapis");
-var CLIENT_ID = '523495534246-82a3b5ppmb2gb4vhs67drgvf6ei7bv48.apps.googleusercontent.com';
-var CLIENT_SECRET = '_bVK0pqOjZuRjY8mLq8rpTXX';
-var REDIRECT_URI = 'https://developers.google.com/oauthplayground';
-var REFRESH_TOKEN = '1//044lTzXTNmUy1CgYIARAAGAQSNwF-L9Ir68LZL8aUo8IpWKGkPBjtdwLH9un3ZuuDgFFZMVrUWjRHnA5kZqRWNlIg62sjdfrIOjE';
 var formatTime = 'LT';
 var formatDate = 'YYYY-MM-DD';
 var signUp = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
@@ -1046,8 +1042,8 @@ var sendMail = function (data) { return __awaiter(void 0, void 0, void 0, functi
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
-                oAuth2Client = new googleapis_1.google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
-                oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+                oAuth2Client = new googleapis_1.google.auth.OAuth2(process.env.CLIENT_ID, process.env.CLIENT_SECRET, process.env.REDIRECT_URI);
+                oAuth2Client.setCredentials({ refresh_token: process.env.REFRESH_TOKEN });
                 _a.label = 1;
             case 1:
                 _a.trys.push([1, 3, , 4]);
@@ -1059,9 +1055,9 @@ var sendMail = function (data) { return __awaiter(void 0, void 0, void 0, functi
                     auth: {
                         type: 'OAuth2',
                         user: 'webviclass@gmail.com',
-                        clientId: CLIENT_ID,
-                        clientSecret: CLIENT_SECRET,
-                        refreshToken: REFRESH_TOKEN,
+                        clientId: process.env.CLIENT_ID,
+                        clientSecret: process.env.CLIENT_SECRET,
+                        refreshToken: process.env.REFRESH_TOKEN,
                         accessToken: accessToken
                     }
                 });
