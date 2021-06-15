@@ -38,8 +38,10 @@ var express_1 = require("express");
 var utils_1 = require("./utils");
 var actions = __importStar(require("./actions"));
 var jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+var mercadopago = require("mercadopago");
 // declare a new router to include all the endpoints
 var router = express_1.Router();
+mercadopago.configurations.setAccessToken("APP_USR-1508248924277931-061013-ef7310941fe2abe705b765227a933eb7-773429653");
 var auth = function (request, response, next) {
     var token = request.header('Authorization');
     if (!token)
@@ -61,4 +63,55 @@ router.get('/user/profile', auth, utils_1.safe(actions.profile));
 router.put('/user/update', auth, utils_1.safe(actions.updateProfile));
 // Ruta para actualizar la contrasenia del usuario
 router.put('/user/updatePassword', auth, utils_1.safe(actions.updatePassword));
+router.get("/", function (req, res) {
+    res.status(200).sendFile("index.html");
+});
+router.post("/checkout", function (req, res) {
+    var preference = {
+        items: [{
+                title: "Creditos",
+                unit_price: 100,
+                quantity: 1
+            }],
+        payer: {
+            name: "Test",
+            surname: "Test",
+            email: "test_user_61138522@testuser.com",
+            date_created: "2015-06-02T12:58:41.425-04:00",
+            phone: {
+                area_code: "598",
+                number: 92884093
+            },
+            identification: {
+                type: "CI",
+                number: "11111111"
+            },
+            address: {
+                street_name: "Oribe",
+                street_number: 790,
+                zip_code: "80000"
+            },
+            back_urls: {
+                "success": process.env.FRONT_URL_COMPRA,
+                "failure": process.env.FRONT_URL_COMPRA,
+                "pending": process.env.FRONT_URL_COMPRA
+            },
+            auto_return: 'approved'
+        }
+    };
+    mercadopago.preferences.create(preference)
+        .then(function (response) {
+        console.log(response);
+        res.redirect(response.body.init_point);
+    })["catch"](function (error) {
+        console.log(error);
+    });
+});
+router.get('/feedback', function (request, response) {
+    response.json({
+        Payment: request.query.payment_id,
+        Status: request.query.status,
+        MerchantOrder: request.query.merchant_order_id
+    });
+});
 exports["default"] = router;

@@ -18,6 +18,7 @@
     "express-async-errors": "^3.1.1",
     "express-jwt": "^6.0.0",
     "jsonwebtoken": "^8.5.1",
+    "mercadopago": "^1.5.7",
     "morgan": "^1.10.0",
     "node-env-file": "^0.1.8",
     "pg": "^8.6.0",

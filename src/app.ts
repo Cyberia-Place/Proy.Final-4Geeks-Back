@@ -7,6 +7,7 @@ import { createConnection } from 'typeorm';
 import { url, renderIndex } from "./utils"
 import privateRoutes from './private_routes'
 import publicRoutes from './public_routes'
+var bodyParser = require('body-parser')
 
 const PORT:number = 3001;
 const PUBLIC_URL = url(PORT)
@@ -23,6 +24,10 @@ https://developer.okta.com/blog/2018/09/13/build-and-understand-express-middlewa
 app.use(cors()) //disable CORS validations
 app.use(express.json()) // the API will be JSON based for serialization
 app.use(morgan('dev')); //logging
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
+app.use(express.static("../../client"));
+app.use(bodyParser.urlencoded({ extended: false }));
 
 // render home website with usefull information for boilerplate developers (students)
 app.get('/', (req, res) => renderIndex(app, PUBLIC_URL).then(html => res.status(404).send(html)))
