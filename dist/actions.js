@@ -999,7 +999,7 @@ var forgotPassword = function (request, response) { return __awaiter(void 0, voi
                 token = jsonwebtoken_1["default"].sign({ usuario: payLoad }, process.env.JWT_KEY, { expiresIn: '15m' });
                 url = process.env.FRONT_URL + '/reset-password/' + token;
                 sendMail(url).then(function (result) { return console.log(result); })["catch"](function (error) { return console.log(error); });
-                return [2 /*return*/, response.json(url)];
+                return [2 /*return*/, response.json('Se ha enviado un email a tu cuenta')];
         }
     });
 }); };
@@ -1068,9 +1068,9 @@ var sendMail = function (data) { return __awaiter(void 0, void 0, void 0, functi
                 mailOptions = {
                     from: 'Viclass <webviclass@gmail.com>',
                     to: 'aguperaza458@gmail.com',
-                    subject: 'Reset password link',
-                    text: "Reset link: " + data,
-                    html: "<h1>Reset link</h1>\n                <a>" + data + "</a>\n            "
+                    subject: 'Link Cambio de Contraseña',
+                    text: "Link: " + data,
+                    html: "<h1>Link</h1>\n                <a>" + data + "</a>\n            "
                 };
                 result = transport.sendMail(mailOptions);
                 return [2 /*return*/, result];

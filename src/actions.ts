@@ -730,7 +730,7 @@ export const forgotPassword = async (request: Request, response: Response): Prom
 
     sendMail(url).then(result => console.log(result)).catch(error => console.log(error));
 
-    return response.json(url);
+    return response.json('Se ha enviado un email a tu cuenta');
 }
 
 export const resetPassword = async (request: Request, response: Response): Promise<Response> => {
@@ -783,9 +783,9 @@ const sendMail = async (data: string) => {
         const mailOptions = {
             from: 'Viclass <webviclass@gmail.com>',
             to: 'aguperaza458@gmail.com',
-            subject: 'Reset password link',
-            text: `Reset link: ${data}`,
-            html: `<h1>Reset link</h1>
+            subject: 'Link Cambio de Contraseña',
+            text: `Link: ${data}`,
+            html: `<h1>Link</h1>
                 <a>${data}</a>
             `,
         }

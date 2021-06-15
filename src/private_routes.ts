@@ -15,9 +15,11 @@ import { Router, NextFunction, Request, Response } from 'express';
 import { safe, Exception } from './utils';
 import * as actions from './actions';
 import jwt from 'jsonwebtoken';
+const mercadopago = require("mercadopago");
 
 // declare a new router to include all the endpoints
 const router = Router();
+mercadopago.configurations.setAccessToken("APP_USR-1508248924277931-061013-ef7310941fe2abe705b765227a933eb7-773429653"); 
 
 const auth = (request: Request, response: Response, next: NextFunction) => {
     let token = request.header('Authorization');
@@ -78,5 +80,67 @@ router.get('/user/nextClases', auth, safe(actions.getUserClases));
 
 // Ruta para conseguir siguientes clases como profesor
 router.get('/teacher/nextClases', auth, safe(actions.getNextClasesDocente));
+
+router.get("/", function (req, res) {
+  res.status(200).sendFile("index.html");
+}); 
+
+router.post("/checkout", (req, res) => {
+
+
+	let preference = {
+		items: [{
+			title: "Creditos",
+			unit_price: 100,
+			quantity: 1,
+        }],
+        payer: {
+            name: "Test",
+            surname: "Test",
+            email: "test_user_61138522@testuser.com",
+            date_created: "2015-06-02T12:58:41.425-04:00",
+            phone: {
+                area_code: "598",
+                number: 92884093
+            },
+    
+        identification: {
+        type: "CI",
+        number: "11111111"
+        },
+    
+        address: {
+        street_name: "Oribe",
+        street_number: 790,
+        zip_code: "80000"
+        },
+    back_urls: {
+        "success": process.env.FRONT_URL_COMPRA,
+        "failure": process.env.FRONT_URL_COMPRA,
+        "pending": process.env.FRONT_URL_COMPRA
+    },
+    auto_return: 'approved',
+    },
+
+}
+
+	mercadopago.preferences.create(preference)
+		.then(function (response: { body: { init_point: string; }; }) {
+            console.log(response)
+            res.redirect(response.body.init_point)
+		}).catch(function (error: any) {
+			console.log(error);
+		});
+});
+
+router.get('/feedback', function(request, response) {
+	 response.json({
+		Payment: request.query.payment_id,
+		Status: request.query.status,
+		MerchantOrder: request.query.merchant_order_id
+    })
+});
+
+
 
 export default router;
