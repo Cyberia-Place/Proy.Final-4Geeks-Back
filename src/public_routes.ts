@@ -18,4 +18,16 @@ router.post('/signup', safe(actions.signUp));
 // Ruta para logearse
 router.post('/login', safe(actions.logIn));
 
+// Ruta para obtener las categorias
+router.get('/categories', safe(actions.getCategories));
+
+// Ruta para crear una categoria
+router.post('/category', safe(actions.createCategory));
+
+// Ruta para solicitar cambio de contrasenia
+router.post('/forgot-password', safe(actions.forgotPassword));
+
+// Ruta para cambio de contrasenia
+router.post('/reset-password', safe(actions.resetPassword));
+
 export default router;

@@ -12,11 +12,14 @@ export class Clase extends BaseEntity {
     @Column()
     nombre: string;
 
-    @Column()
-    fecha: Date;
+    @Column({ type: 'date' })
+    fecha: string;
 
-    @Column()
-    duracion: number;
+    @Column({ type: 'time' })
+    hora_inicio: string;
+
+    @Column({ type: 'time' })
+    hora_fin: string;
 
     @ManyToOne(() => Usuario, usuario => usuario.clases)
     profesor: Usuario;
@@ -28,4 +31,6 @@ export class Clase extends BaseEntity {
     @OneToMany(() => Inscripcion, inscripcion => inscripcion.clase)
     inscripciones: Inscripcion[];
 
+    @Column({ default: 0 })
+    precio: number;
 }
