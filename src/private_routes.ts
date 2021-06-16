@@ -23,7 +23,7 @@ mercadopago.configurations.setAccessToken("TEST-7130492618854174-060916-bc2325b7
 
 const auth = (request: Request, response: Response, next: NextFunction) => {
     let token = request.header('Authorization');
-    if(!token) throw new Exception('Acceso Denegado');
+    if (!token) throw new Exception('Acceso Denegado');
 
     let decoded;
 
@@ -32,7 +32,7 @@ const auth = (request: Request, response: Response, next: NextFunction) => {
     } catch (error) {
     }
 
-    if(!decoded) throw new Exception('Invalid token');
+    if (!decoded) throw new Exception('Invalid token');
 
     Object.assign(request.body, decoded);
 
@@ -42,11 +42,44 @@ const auth = (request: Request, response: Response, next: NextFunction) => {
 // Ruta para dar los datos del usuario logeado
 router.get('/user/profile', auth, safe(actions.profile));
 
+// Ruta para dar los datos de un usuario particular
+router.get('/user/profile/:id', auth, safe(actions.profile));
+
+// Ruta para dar las stats del usuario logeado
+router.get('/user/stats', auth, safe(actions.getUserStats));
+
+// Ruta para dar las stats de un usuario particular
+router.get('/user/stats/:id', auth, safe(actions.getUserStats));
+
 // Ruta para actualizar el perfil del usuario
 router.put('/user/update', auth, safe(actions.updateProfile));
 
 // Ruta para actualizar la contrasenia del usuario
 router.put('/user/updatePassword', auth, safe(actions.updatePassword));
+
+// Ruta para listar las clases
+router.get('/clases', auth, safe(actions.getClasses));
+
+// Ruta para listar las clases filtradas
+router.get('/clases/filtered', auth, safe(actions.getClassesFiltered));
+
+// Ruta para tarer datos de una clase
+router.get('/class', auth, safe(actions.getClass));
+
+// Ruta para crear una clase
+router.post('/class', auth, safe(actions.createClass));
+
+// Ruta para inscribirse a una clase
+router.post('/enroll', auth, safe(actions.enroll));
+
+// Ruta para valorar un docente
+router.post('/valorate', auth, safe(actions.valorate));
+
+// Ruta para conseguir siguientes clases como alumno
+router.get('/user/nextClases', auth, safe(actions.getUserClases));
+
+// Ruta para conseguir siguientes clases como profesor
+router.get('/teacher/nextClases', auth, safe(actions.getNextClasesDocente));
 
 router.get("/", function (req, res) {
   res.status(200).sendFile("index.html");

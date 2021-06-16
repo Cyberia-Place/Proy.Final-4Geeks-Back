@@ -59,10 +59,32 @@ var auth = function (request, response, next) {
 };
 // Ruta para dar los datos del usuario logeado
 router.get('/user/profile', auth, utils_1.safe(actions.profile));
+// Ruta para dar los datos de un usuario particular
+router.get('/user/profile/:id', auth, utils_1.safe(actions.profile));
+// Ruta para dar las stats del usuario logeado
+router.get('/user/stats', auth, utils_1.safe(actions.getUserStats));
+// Ruta para dar las stats de un usuario particular
+router.get('/user/stats/:id', auth, utils_1.safe(actions.getUserStats));
 // Ruta para actualizar el perfil del usuario
 router.put('/user/update', auth, utils_1.safe(actions.updateProfile));
 // Ruta para actualizar la contrasenia del usuario
 router.put('/user/updatePassword', auth, utils_1.safe(actions.updatePassword));
+// Ruta para listar las clases
+router.get('/clases', auth, utils_1.safe(actions.getClasses));
+// Ruta para listar las clases filtradas
+router.get('/clases/filtered', auth, utils_1.safe(actions.getClassesFiltered));
+// Ruta para tarer datos de una clase
+router.get('/class', auth, utils_1.safe(actions.getClass));
+// Ruta para crear una clase
+router.post('/class', auth, utils_1.safe(actions.createClass));
+// Ruta para inscribirse a una clase
+router.post('/enroll', auth, utils_1.safe(actions.enroll));
+// Ruta para valorar un docente
+router.post('/valorate', auth, utils_1.safe(actions.valorate));
+// Ruta para conseguir siguientes clases como alumno
+router.get('/user/nextClases', auth, utils_1.safe(actions.getUserClases));
+// Ruta para conseguir siguientes clases como profesor
+router.get('/teacher/nextClases', auth, utils_1.safe(actions.getNextClasesDocente));
 router.get("/", function (req, res) {
     res.status(200).sendFile("index.html");
 });
