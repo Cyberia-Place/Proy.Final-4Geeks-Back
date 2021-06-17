@@ -57,6 +57,8 @@ var auth = function (request, response, next) {
     Object.assign(request.body, decoded);
     next();
 };
+// Ruta para dar los creditos del usuario logeado
+router.get('/user/credits', auth, utils_1.safe(actions.getCredits));
 // Ruta para dar los datos del usuario logeado
 router.get('/user/profile', auth, utils_1.safe(actions.profile));
 // Ruta para dar los datos de un usuario particular
@@ -79,6 +81,8 @@ router.get('/class', auth, utils_1.safe(actions.getClass));
 router.post('/class', auth, utils_1.safe(actions.createClass));
 // Ruta para inscribirse a una clase
 router.post('/enroll', auth, utils_1.safe(actions.enroll));
+// Ruta para eliminar inscripcion a una clase
+router["delete"]('/enroll', auth, utils_1.safe(actions.removeEnroll));
 // Ruta para valorar un docente
 router.post('/valorate', auth, utils_1.safe(actions.valorate));
 // Ruta para conseguir siguientes clases como alumno

@@ -214,6 +214,7 @@ export const getClassesFiltered = async (request: Request, response: Response): 
             fecha: clases[i].fecha,
             nombre: clases[i].nombre,
             categorias: clases[i].categorias,
+            precio: clases[i].precio,
             profesor: {
                 id: clases[i].profesor.id,
                 email: clases[i].profesor.email,
@@ -233,6 +234,9 @@ export const createClass = async (request: Request, response: Response): Promise
     if (!request.body.fecha) throw new Exception('Falta la propiedad fecha de la clase');
     if (!request.body.hora_inicio) throw new Exception('Falta la hora de inicio de la clase');
     if (!request.body.hora_fin) throw new Exception('Falta la hora de finalizacion de la clase');
+    if (!request.body.precio) throw new Exception('Falta el precio de la clase');
+
+    if (!validator.isNumeric(request.body.precio)) throw new Exception('Precio invalido');
 
     // Validate Date
     if (!moment(request.body.fecha, formatDate).isValid()) throw new Exception('Fecha invalida (YYYY-MM-DD)');
@@ -293,7 +297,8 @@ export const createClass = async (request: Request, response: Response): Promise
         hora_inicio,
         hora_fin,
         categorias: categories,
-        profesor: profesor
+        profesor: profesor,
+        precio: request.body.precio
     });
 
     let result = await getRepository(Clase).save(newClass);
@@ -363,6 +368,19 @@ export const enroll = async (request: Request, response: Response): Promise<Resp
             throw new Exception('Ya te encuentras inscripto en una clase a esa hora');
         }
     });
+
+    if (clase.precio > estudiante.creditos) throw new Exception('Creditos insuficientes');
+
+    estudiante.creditos -= clase.precio;
+
+    let profesor = await getRepository(Usuario).findOne(clase.profesor.id);
+
+    if (!profesor) throw new Exception('No se encontro el docente');
+
+    profesor.creditos += clase.precio;
+
+    await getRepository(Usuario).save(estudiante);
+    await getRepository(Usuario).save(profesor);
 
     let newEnroll = getRepository(Inscripcion).create({
         clase: clase,
@@ -723,7 +741,7 @@ export const forgotPassword = async (request: Request, response: Response): Prom
 
     let url = process.env.FRONT_URL + '/reset-password/' + token;
 
-    sendMail(url).then(result => console.log(result)).catch(error => console.log(error));
+    sendMail(url, usuario.email).then(result => console.log(result)).catch(error => console.log(error));
 
     return response.json('Se ha enviado un email a tu cuenta');
 }
@@ -757,7 +775,7 @@ export const resetPassword = async (request: Request, response: Response): Promi
     return response.json(result);
 }
 
-const sendMail = async (data: string) => {
+const sendMail = async (data: string, to: string) => {
     let oAuth2Client = new google.auth.OAuth2(process.env.CLIENT_ID, process.env.CLIENT_SECRET, process.env.REDIRECT_URI);
     oAuth2Client.setCredentials({ refresh_token: process.env.REFRESH_TOKEN });
 
@@ -777,7 +795,7 @@ const sendMail = async (data: string) => {
 
         const mailOptions = {
             from: 'Viclass <webviclass@gmail.com>',
-            to: 'aguperaza458@gmail.com',
+            to: to,
             subject: 'Link Cambio de Contraseña',
             text: `Link: ${data}`,
             html: `<h1>Link</h1>
@@ -791,4 +809,49 @@ const sendMail = async (data: string) => {
     } catch (error) {
         return error;
     }
+}
+
+export const addCredits = async (cantidad: number, usuario: Usuario) => {
+    if (!usuario) throw new Exception('Falta el usuario');
+
+    usuario.creditos += cantidad;
+
+    let result = await getRepository(Usuario).save(usuario);
+
+    return result;
+}
+
+export const getCredits = async (request: Request, response: Response): Promise<Response> => {
+    let usuario = await getRepository(Usuario).findOne(request.body.usuario.id);
+
+    if (!usuario) throw new Exception('Usuario no encontrado');
+
+    return response.json({ creditos: usuario.creditos });
+}
+
+export const removeEnroll = async (request: Request, response: Response): Promise<Response> => {
+    // Validate data
+    if (!request.body.clase_id) throw new Exception('Falta el id de la clase a remover');
+
+    // Validate that the class exists
+    let clase = await getRepository(Clase).findOne(request.body.clase_id, {
+        relations: ['profesor']
+    });
+    if (!clase) throw new Exception('No existe ninguna clase con el id ingresado');
+
+    if (!moment(clase.fecha).isAfter()) throw new Exception('La clase ya ha terminado');
+
+    let estudiante = await getRepository(Usuario).findOne(request.body.usuario.id);
+
+    if (!estudiante) throw new Exception('No se encontro el usuario');
+
+    let inscripcion = await getRepository(Inscripcion).findOne({
+        where: { usuario: estudiante, clase: clase }
+    });
+
+    if (!inscripcion) throw new Exception('No te te encuentras inscripto a esta clase');
+
+    let result = await getRepository(Inscripcion).delete(inscripcion.id);
+
+    return response.json(result);
 }

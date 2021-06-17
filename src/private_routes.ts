@@ -39,6 +39,9 @@ const auth = (request: Request, response: Response, next: NextFunction) => {
     next();
 }
 
+// Ruta para dar los creditos del usuario logeado
+router.get('/user/credits', auth, safe(actions.getCredits));
+
 // Ruta para dar los datos del usuario logeado
 router.get('/user/profile', auth, safe(actions.profile));
 
@@ -71,6 +74,9 @@ router.post('/class', auth, safe(actions.createClass));
 
 // Ruta para inscribirse a una clase
 router.post('/enroll', auth, safe(actions.enroll));
+
+// Ruta para eliminar inscripcion a una clase
+router.delete('/enroll', auth, safe(actions.removeEnroll));
 
 // Ruta para valorar un docente
 router.post('/valorate', auth, safe(actions.valorate));
