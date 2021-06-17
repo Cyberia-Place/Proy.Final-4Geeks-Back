@@ -145,7 +145,7 @@ var profile = function (request, response) { return __awaiter(void 0, void 0, vo
                 if (request.params.id)
                     idUsuario = request.params.id;
                 return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne({
-                        select: ['id', 'email', 'nombre', 'imagen', 'pais', 'edad', 'descripcion', 'idioma', 'ocupacion'],
+                        select: ['id', 'email', 'nombre', 'imagen', 'pais', 'edad', 'descripcion', 'idioma', 'ocupacion', 'url'],
                         where: { id: idUsuario }
                     })];
             case 1:
@@ -202,7 +202,13 @@ var updateProfile = function (request, response) { return __awaiter(void 0, void
             case 13:
                 _a.sent();
                 _a.label = 14;
-            case 14: return [2 /*return*/, response.json({ msg: "usuario actualizado" })];
+            case 14:
+                if (!request.body.url) return [3 /*break*/, 16];
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).update(request.body.usuario.id, { url: request.body.url })];
+            case 15:
+                _a.sent();
+                _a.label = 16;
+            case 16: return [2 /*return*/, response.json({ msg: "usuario actualizado" })];
         }
     });
 }); };
@@ -308,7 +314,8 @@ var getClasses = function (request, response) { return __awaiter(void 0, void 0,
                     id: clases[i].profesor.id,
                     email: clases[i].profesor.email,
                     nombre: clases[i].profesor.nombre,
-                    imagen: clases[i].profesor.imagen
+                    imagen: clases[i].profesor.imagen,
+                    url: clases[i].profesor.url
                 };
                 return [4 /*yield*/, getValoracionUsuario(clases[i].profesor.id)];
             case 3:
@@ -371,7 +378,8 @@ var getClassesFiltered = function (request, response) { return __awaiter(void 0,
                     id: clases[i].profesor.id,
                     email: clases[i].profesor.email,
                     nombre: clases[i].profesor.nombre,
-                    imagen: clases[i].profesor.imagen
+                    imagen: clases[i].profesor.imagen,
+                    url: clases[i].profesor.url
                 };
                 return [4 /*yield*/, getValoracionUsuario(clases[i].profesor.id)];
             case 3:
@@ -616,7 +624,8 @@ var getClass = function (request, response) { return __awaiter(void 0, void 0, v
                     id: clase.profesor.id,
                     email: clase.profesor.email,
                     nombre: clase.profesor.nombre,
-                    imagen: clase.profesor.imagen
+                    imagen: clase.profesor.imagen,
+                    url: clase.profesor.url
                 };
                 return [4 /*yield*/, getValoracionUsuario(clase.profesor.id)];
             case 4:
@@ -919,7 +928,8 @@ var getNextClases = function (idUsuario) { return __awaiter(void 0, void 0, void
                         nombre: res[i].nombre,
                         profesor: {
                             id: res[i].profesor.id,
-                            nombre: res[i].profesor.nombre
+                            nombre: res[i].profesor.nombre,
+                            url: res[i].profesor.url
                         }
                     });
                 }
@@ -954,7 +964,8 @@ var getPreviousClases = function (idUsuario) { return __awaiter(void 0, void 0, 
                         nombre: res[i].nombre,
                         profesor: {
                             id: res[i].profesor.id,
-                            nombre: res[i].profesor.nombre
+                            nombre: res[i].profesor.nombre,
+                            url: res[i].profesor.url
                         }
                     });
                 }
@@ -978,10 +989,11 @@ var getUserClases = function (request, response) { return __awaiter(void 0, void
 }); };
 exports.getUserClases = getUserClases;
 var getNextClasesDocente = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
-    var res;
+    var res, result, i;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0: return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).createQueryBuilder("clase")
+                    .innerJoinAndSelect("clase.profesor", "profesor")
                     .where("clase.profesor = :usuario", { usuario: request.body.usuario.id })
                     .andWhere("clase.fecha > :fecha", { fecha: moment_1["default"]().format(formatDate) })
                     .orderBy({
@@ -991,7 +1003,18 @@ var getNextClasesDocente = function (request, response) { return __awaiter(void 
                     .getMany()];
             case 1:
                 res = _a.sent();
-                return [2 /*return*/, response.json(res)];
+                result = [];
+                for (i = 0; i < res.length; i++) {
+                    result.push({
+                        id: res[i].id,
+                        hora_inicio: res[i].hora_inicio,
+                        hora_fin: res[i].hora_fin,
+                        fecha: res[i].fecha,
+                        nombre: res[i].nombre,
+                        url: res[i].profesor.url
+                    });
+                }
+                return [2 /*return*/, response.json(result)];
         }
     });
 }); };
