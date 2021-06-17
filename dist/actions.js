@@ -39,7 +39,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-exports.resetPassword = exports.forgotPassword = exports.getNextClasesDocente = exports.getUserClases = exports.getUserStats = exports.valorate = exports.getClass = exports.enroll = exports.createClass = exports.getClassesFiltered = exports.getClasses = exports.createCategory = exports.getCategories = exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
+exports.googleLogin = exports.removeEnroll = exports.getCredits = exports.addCredits = exports.resetPassword = exports.forgotPassword = exports.getNextClasesDocente = exports.getUserClases = exports.getUserStats = exports.valorate = exports.getClass = exports.enroll = exports.createClass = exports.getClassesFiltered = exports.getClasses = exports.createCategory = exports.getCategories = exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
 var typeorm_1 = require("typeorm"); // getRepository"  traer una tabla de la base de datos asociada al objeto
 var utils_1 = require("./utils");
 var Usuario_1 = require("./entities/Usuario");
@@ -51,6 +51,7 @@ var validator_1 = __importDefault(require("validator"));
 var moment_1 = __importDefault(require("moment"));
 var Inscripcion_1 = require("./entities/Inscripcion");
 var Valoracion_1 = require("./entities/Valoracion");
+var google_auth_library_1 = require("google-auth-library");
 var nodemailer_1 = __importDefault(require("nodemailer"));
 var googleapis_1 = require("googleapis");
 var formatTime = 'LT';
@@ -300,7 +301,8 @@ var getClasses = function (request, response) { return __awaiter(void 0, void 0,
                     hora_fin: clases[i].hora_fin,
                     fecha: clases[i].fecha,
                     nombre: clases[i].nombre,
-                    categorias: clases[i].categorias
+                    categorias: clases[i].categorias,
+                    precio: clases[i].precio
                 };
                 _d = {
                     id: clases[i].profesor.id,
@@ -362,7 +364,8 @@ var getClassesFiltered = function (request, response) { return __awaiter(void 0,
                     hora_fin: clases[i].hora_fin,
                     fecha: clases[i].fecha,
                     nombre: clases[i].nombre,
-                    categorias: clases[i].categorias
+                    categorias: clases[i].categorias,
+                    precio: clases[i].precio
                 };
                 _d = {
                     id: clases[i].profesor.id,
@@ -398,6 +401,10 @@ var createClass = function (request, response) { return __awaiter(void 0, void 0
                     throw new utils_1.Exception('Falta la hora de inicio de la clase');
                 if (!request.body.hora_fin)
                     throw new utils_1.Exception('Falta la hora de finalizacion de la clase');
+                if (!request.body.precio)
+                    throw new utils_1.Exception('Falta el precio de la clase');
+                if (!validator_1["default"].isNumeric(request.body.precio))
+                    throw new utils_1.Exception('Precio invalido');
                 // Validate Date
                 if (!moment_1["default"](request.body.fecha, formatDate).isValid())
                     throw new utils_1.Exception('Fecha invalida (YYYY-MM-DD)');
@@ -455,7 +462,8 @@ var createClass = function (request, response) { return __awaiter(void 0, void 0
                     hora_inicio: hora_inicio,
                     hora_fin: hora_fin,
                     categorias: categories,
-                    profesor: profesor
+                    profesor: profesor,
+                    precio: request.body.precio
                 });
                 return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).save(newClass)];
             case 4:
@@ -493,7 +501,7 @@ var getCategoriesByNames = function (array) { return __awaiter(void 0, void 0, v
     });
 }); };
 var enroll = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
-    var clase, estudiante, inscripcion, inscripciones, momentInicio, momentFin, newEnroll, result;
+    var clase, estudiante, inscripcion, inscripciones, momentInicio, momentFin, profesor, newEnroll, result;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -545,12 +553,27 @@ var enroll = function (request, response) { return __awaiter(void 0, void 0, voi
                         throw new utils_1.Exception('Ya te encuentras inscripto en una clase a esa hora');
                     }
                 });
+                if (clase.precio > estudiante.creditos)
+                    throw new utils_1.Exception('Creditos insuficientes');
+                estudiante.creditos -= clase.precio;
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne(clase.profesor.id)];
+            case 5:
+                profesor = _a.sent();
+                if (!profesor)
+                    throw new utils_1.Exception('No se encontro el docente');
+                profesor.creditos += clase.precio;
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).save(estudiante)];
+            case 6:
+                _a.sent();
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).save(profesor)];
+            case 7:
+                _a.sent();
                 newEnroll = typeorm_1.getRepository(Inscripcion_1.Inscripcion).create({
                     clase: clase,
                     usuario: estudiante
                 });
                 return [4 /*yield*/, typeorm_1.getRepository(Inscripcion_1.Inscripcion).save(newEnroll)];
-            case 5:
+            case 8:
                 result = _a.sent();
                 return [2 /*return*/, response.json(result)];
         }
@@ -993,8 +1016,8 @@ var forgotPassword = function (request, response) { return __awaiter(void 0, voi
                     email: usuario.email
                 };
                 token = jsonwebtoken_1["default"].sign({ usuario: payLoad }, process.env.JWT_KEY, { expiresIn: '15m' });
-                url = process.env.FRONT_URL + '/reset-password/' + token;
-                sendMail(url).then(function (result) { return console.log(result); })["catch"](function (error) { return console.log(error); });
+                url = process.env.FRONT_URL + '/reset-password?token=' + token;
+                sendMail(url, usuario.email).then(function (result) { return console.log(result); })["catch"](function (error) { return console.log(error); });
                 return [2 /*return*/, response.json('Se ha enviado un email a tu cuenta')];
         }
     });
@@ -1037,7 +1060,7 @@ var resetPassword = function (request, response) { return __awaiter(void 0, void
     });
 }); };
 exports.resetPassword = resetPassword;
-var sendMail = function (data) { return __awaiter(void 0, void 0, void 0, function () {
+var sendMail = function (data, to) { return __awaiter(void 0, void 0, void 0, function () {
     var oAuth2Client, accessToken, transport, mailOptions, result, error_1;
     return __generator(this, function (_a) {
         switch (_a.label) {
@@ -1063,7 +1086,7 @@ var sendMail = function (data) { return __awaiter(void 0, void 0, void 0, functi
                 });
                 mailOptions = {
                     from: 'Viclass <webviclass@gmail.com>',
-                    to: 'aguperaza458@gmail.com',
+                    to: to,
                     subject: 'Link Cambio de Contraseña',
                     text: "Link: " + data,
                     html: "<h1>Link</h1>\n                <a>" + data + "</a>\n            "
@@ -1077,3 +1100,128 @@ var sendMail = function (data) { return __awaiter(void 0, void 0, void 0, functi
         }
     });
 }); };
+var addCredits = function (cantidad, usuario) { return __awaiter(void 0, void 0, void 0, function () {
+    var result;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                if (!usuario)
+                    throw new utils_1.Exception('Falta el usuario');
+                usuario.creditos += cantidad;
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).save(usuario)];
+            case 1:
+                result = _a.sent();
+                return [2 /*return*/, result];
+        }
+    });
+}); };
+exports.addCredits = addCredits;
+var getCredits = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var usuario;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne(request.body.usuario.id)];
+            case 1:
+                usuario = _a.sent();
+                if (!usuario)
+                    throw new utils_1.Exception('Usuario no encontrado');
+                return [2 /*return*/, response.json({ creditos: usuario.creditos })];
+        }
+    });
+}); };
+exports.getCredits = getCredits;
+var removeEnroll = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var clase, estudiante, inscripcion, result;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                // Validate data
+                if (!request.body.clase_id)
+                    throw new utils_1.Exception('Falta el id de la clase a remover');
+                return [4 /*yield*/, typeorm_1.getRepository(Clase_1.Clase).findOne(request.body.clase_id, {
+                        relations: ['profesor']
+                    })];
+            case 1:
+                clase = _a.sent();
+                if (!clase)
+                    throw new utils_1.Exception('No existe ninguna clase con el id ingresado');
+                if (!moment_1["default"](clase.fecha).isAfter())
+                    throw new utils_1.Exception('La clase ya ha terminado');
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne(request.body.usuario.id)];
+            case 2:
+                estudiante = _a.sent();
+                if (!estudiante)
+                    throw new utils_1.Exception('No se encontro el usuario');
+                return [4 /*yield*/, typeorm_1.getRepository(Inscripcion_1.Inscripcion).findOne({
+                        where: { usuario: estudiante, clase: clase }
+                    })];
+            case 3:
+                inscripcion = _a.sent();
+                if (!inscripcion)
+                    throw new utils_1.Exception('No te te encuentras inscripto a esta clase');
+                return [4 /*yield*/, typeorm_1.getRepository(Inscripcion_1.Inscripcion)["delete"](inscripcion.id)];
+            case 4:
+                result = _a.sent();
+                return [2 /*return*/, response.json(result)];
+        }
+    });
+}); };
+exports.removeEnroll = removeEnroll;
+var googleLogin = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var client, ticket, payload, userid, email, nombre, usuario, salt, hashedPassword, payLoad, token, expires;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                if (!request.body.tokenId)
+                    throw new utils_1.Exception('Falta el token de login');
+                client = new google_auth_library_1.OAuth2Client(process.env.LOGIN_ID);
+                return [4 /*yield*/, client.verifyIdToken({
+                        idToken: request.body.tokenId,
+                        audience: process.env.LOGIN_ID
+                    })];
+            case 1:
+                ticket = _a.sent();
+                payload = ticket.getPayload();
+                if (!payload)
+                    throw new utils_1.Exception('Algo salio mal');
+                userid = payload.sub;
+                email = payload.email;
+                nombre = payload.name;
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne({
+                        where: { email: email }
+                    })];
+            case 2:
+                usuario = _a.sent();
+                if (!!usuario) return [3 /*break*/, 6];
+                return [4 /*yield*/, bcrypt_1["default"].genSalt()];
+            case 3:
+                salt = _a.sent();
+                return [4 /*yield*/, bcrypt_1["default"].hash(userid, salt)];
+            case 4:
+                hashedPassword = _a.sent();
+                // Se crea la nueva instancia de usuario
+                usuario = typeorm_1.getRepository(Usuario_1.Usuario).create({
+                    email: email,
+                    contrasenia: hashedPassword,
+                    nombre: nombre
+                });
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).save(usuario)];
+            case 5:
+                _a.sent();
+                _a.label = 6;
+            case 6:
+                payLoad = {
+                    id: usuario.id,
+                    nombre: usuario.nombre,
+                    email: usuario.email,
+                    imagen: usuario.imagen
+                };
+                token = jsonwebtoken_1["default"].sign({ usuario: payLoad }, process.env.JWT_KEY, { expiresIn: '1day' });
+                expires = new Date();
+                expires.setDate(expires.getDate() + 1);
+                expires.setHours(expires.getHours() - 3);
+                return [2 /*return*/, response.json({ usuario: payLoad, token: token, expires: expires })];
+        }
+    });
+}); };
+exports.googleLogin = googleLogin;
