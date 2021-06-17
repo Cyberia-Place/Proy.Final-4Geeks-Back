@@ -50,4 +50,7 @@ export class Usuario extends BaseEntity {
 
     @OneToMany(() => Inscripcion, inscripcion => inscripcion.usuario)
     inscripciones: Inscripcion[];
+
+    @Column({ nullable: true })
+    url: string;
 }

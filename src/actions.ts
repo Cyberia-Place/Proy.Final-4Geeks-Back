@@ -83,7 +83,7 @@ export const profile = async (request: Request, response: Response): Promise<Res
     if (request.params.id) idUsuario = request.params.id;
 
     let usuario = await getRepository(Usuario).findOne({
-        select: ['id', 'email', 'nombre', 'imagen', 'pais', 'edad', 'descripcion', 'idioma', 'ocupacion'],
+        select: ['id', 'email', 'nombre', 'imagen', 'pais', 'edad', 'descripcion', 'idioma', 'ocupacion', 'url'],
         where: { id: idUsuario }
     });
 
@@ -106,6 +106,8 @@ export const updateProfile = async (request: Request, response: Response): Promi
     if (request.body.idioma) await getRepository(Usuario).update(request.body.usuario.id, { idioma: request.body.idioma });
 
     if (request.body.ocupacion) await getRepository(Usuario).update(request.body.usuario.id, { ocupacion: request.body.ocupacion });
+
+    if (request.body.url) await getRepository(Usuario).update(request.body.usuario.id, { url: request.body.url });
 
     return response.json({ msg: "usuario actualizado" });
 }
@@ -174,6 +176,7 @@ export const getClasses = async (request: Request, response: Response): Promise<
                 email: clases[i].profesor.email,
                 nombre: clases[i].profesor.nombre,
                 imagen: clases[i].profesor.imagen,
+                url: clases[i].profesor.url,
                 valoracion: await getValoracionUsuario(clases[i].profesor.id)
             }
         });
@@ -221,6 +224,7 @@ export const getClassesFiltered = async (request: Request, response: Response): 
                 email: clases[i].profesor.email,
                 nombre: clases[i].profesor.nombre,
                 imagen: clases[i].profesor.imagen,
+                url: clases[i].profesor.url,
                 valoracion: await getValoracionUsuario(clases[i].profesor.id)
             }
         });
@@ -421,6 +425,7 @@ export const getClass = async (request: Request, response: Response): Promise<Re
             email: clase.profesor.email,
             nombre: clase.profesor.nombre,
             imagen: clase.profesor.imagen,
+            url: clase.profesor.url,
             valoracion: await getValoracionUsuario(clase.profesor.id)
         },
         inscripciones: inscripciones
@@ -667,6 +672,7 @@ const getNextClases = async (idUsuario: number) => {
             profesor: {
                 id: res[i].profesor.id,
                 nombre: res[i].profesor.nombre,
+                url: res[i].profesor.url,
             }
         });
     }
@@ -698,6 +704,7 @@ const getPreviousClases = async (idUsuario: number) => {
             profesor: {
                 id: res[i].profesor.id,
                 nombre: res[i].profesor.nombre,
+                url: res[i].profesor.url,
             }
         });
     }
@@ -713,6 +720,7 @@ export const getUserClases = async (request: Request, response: Response): Promi
 
 export const getNextClasesDocente = async (request: Request, response: Response): Promise<Response> => {
     let res = await getRepository(Clase).createQueryBuilder("clase")
+        .innerJoinAndSelect("clase.profesor", "profesor")
         .where("clase.profesor = :usuario", { usuario: request.body.usuario.id })
         .andWhere("clase.fecha > :fecha", { fecha: moment().format(formatDate) })
         .orderBy({
@@ -721,7 +729,19 @@ export const getNextClasesDocente = async (request: Request, response: Response)
         })
         .getMany();
 
-    return response.json(res);
+    let result = [];
+    for (let i = 0; i < res.length; i++) {
+        result.push({
+            id: res[i].id,
+            hora_inicio: res[i].hora_inicio,
+            hora_fin: res[i].hora_fin,
+            fecha: res[i].fecha,
+            nombre: res[i].nombre,
+            url: res[i].profesor.url,
+        });
+    }
+
+    return response.json(result);
 }
 
 export const forgotPassword = async (request: Request, response: Response): Promise<Response> => {

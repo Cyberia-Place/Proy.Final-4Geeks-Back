@@ -94,6 +94,10 @@ var Usuario = /** @class */ (function (_super) {
         typeorm_1.OneToMany(function () { return Inscripcion_1.Inscripcion; }, function (inscripcion) { return inscripcion.usuario; }),
         __metadata("design:type", Array)
     ], Usuario.prototype, "inscripciones");
+    __decorate([
+        typeorm_1.Column({ nullable: true }),
+        __metadata("design:type", String)
+    ], Usuario.prototype, "url");
     Usuario = __decorate([
         typeorm_1.Entity('usuarios')
     ], Usuario);
