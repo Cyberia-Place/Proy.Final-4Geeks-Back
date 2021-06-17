@@ -168,6 +168,7 @@ export const getClasses = async (request: Request, response: Response): Promise<
             fecha: clases[i].fecha,
             nombre: clases[i].nombre,
             categorias: clases[i].categorias,
+            precio: clases[i].precio,
             profesor: {
                 id: clases[i].profesor.id,
                 email: clases[i].profesor.email,
