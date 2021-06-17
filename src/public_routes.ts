@@ -18,6 +18,9 @@ router.post('/signup', safe(actions.signUp));
 // Ruta para logearse
 router.post('/login', safe(actions.logIn));
 
+// Ruta para logearse con google
+router.post('/google-login', safe(actions.googleLogin));
+
 // Ruta para obtener las categorias
 router.get('/categories', safe(actions.getCategories));
 

@@ -39,7 +39,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-exports.removeEnroll = exports.getCredits = exports.addCredits = exports.resetPassword = exports.forgotPassword = exports.getNextClasesDocente = exports.getUserClases = exports.getUserStats = exports.valorate = exports.getClass = exports.enroll = exports.createClass = exports.getClassesFiltered = exports.getClasses = exports.createCategory = exports.getCategories = exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
+exports.googleLogin = exports.removeEnroll = exports.getCredits = exports.addCredits = exports.resetPassword = exports.forgotPassword = exports.getNextClasesDocente = exports.getUserClases = exports.getUserStats = exports.valorate = exports.getClass = exports.enroll = exports.createClass = exports.getClassesFiltered = exports.getClasses = exports.createCategory = exports.getCategories = exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
 var typeorm_1 = require("typeorm"); // getRepository"  traer una tabla de la base de datos asociada al objeto
 var utils_1 = require("./utils");
 var Usuario_1 = require("./entities/Usuario");
@@ -51,6 +51,7 @@ var validator_1 = __importDefault(require("validator"));
 var moment_1 = __importDefault(require("moment"));
 var Inscripcion_1 = require("./entities/Inscripcion");
 var Valoracion_1 = require("./entities/Valoracion");
+var google_auth_library_1 = require("google-auth-library");
 var nodemailer_1 = __importDefault(require("nodemailer"));
 var googleapis_1 = require("googleapis");
 var formatTime = 'LT';
@@ -300,7 +301,8 @@ var getClasses = function (request, response) { return __awaiter(void 0, void 0,
                     hora_fin: clases[i].hora_fin,
                     fecha: clases[i].fecha,
                     nombre: clases[i].nombre,
-                    categorias: clases[i].categorias
+                    categorias: clases[i].categorias,
+                    precio: clases[i].precio
                 };
                 _d = {
                     id: clases[i].profesor.id,
@@ -1014,7 +1016,7 @@ var forgotPassword = function (request, response) { return __awaiter(void 0, voi
                     email: usuario.email
                 };
                 token = jsonwebtoken_1["default"].sign({ usuario: payLoad }, process.env.JWT_KEY, { expiresIn: '15m' });
-                url = process.env.FRONT_URL + '/reset-password/' + token;
+                url = process.env.FRONT_URL + '/reset-password?token=' + token;
                 sendMail(url, usuario.email).then(function (result) { return console.log(result); })["catch"](function (error) { return console.log(error); });
                 return [2 /*return*/, response.json('Se ha enviado un email a tu cuenta')];
         }
@@ -1165,3 +1167,61 @@ var removeEnroll = function (request, response) { return __awaiter(void 0, void 
     });
 }); };
 exports.removeEnroll = removeEnroll;
+var googleLogin = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
+    var client, ticket, payload, userid, email, nombre, usuario, salt, hashedPassword, payLoad, token, expires;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                if (!request.body.tokenId)
+                    throw new utils_1.Exception('Falta el token de login');
+                client = new google_auth_library_1.OAuth2Client(process.env.LOGIN_ID);
+                return [4 /*yield*/, client.verifyIdToken({
+                        idToken: request.body.tokenId,
+                        audience: process.env.LOGIN_ID
+                    })];
+            case 1:
+                ticket = _a.sent();
+                payload = ticket.getPayload();
+                if (!payload)
+                    throw new utils_1.Exception('Algo salio mal');
+                userid = payload.sub;
+                email = payload.email;
+                nombre = payload.name;
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).findOne({
+                        where: { email: email }
+                    })];
+            case 2:
+                usuario = _a.sent();
+                if (!!usuario) return [3 /*break*/, 6];
+                return [4 /*yield*/, bcrypt_1["default"].genSalt()];
+            case 3:
+                salt = _a.sent();
+                return [4 /*yield*/, bcrypt_1["default"].hash(userid, salt)];
+            case 4:
+                hashedPassword = _a.sent();
+                // Se crea la nueva instancia de usuario
+                usuario = typeorm_1.getRepository(Usuario_1.Usuario).create({
+                    email: email,
+                    contrasenia: hashedPassword,
+                    nombre: nombre
+                });
+                return [4 /*yield*/, typeorm_1.getRepository(Usuario_1.Usuario).save(usuario)];
+            case 5:
+                _a.sent();
+                _a.label = 6;
+            case 6:
+                payLoad = {
+                    id: usuario.id,
+                    nombre: usuario.nombre,
+                    email: usuario.email,
+                    imagen: usuario.imagen
+                };
+                token = jsonwebtoken_1["default"].sign({ usuario: payLoad }, process.env.JWT_KEY, { expiresIn: '1day' });
+                expires = new Date();
+                expires.setDate(expires.getDate() + 1);
+                expires.setHours(expires.getHours() - 3);
+                return [2 /*return*/, response.json({ usuario: payLoad, token: token, expires: expires })];
+        }
+    });
+}); };
+exports.googleLogin = googleLogin;

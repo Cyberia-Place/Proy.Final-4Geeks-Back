@@ -10,7 +10,7 @@ import validator from 'validator';
 import moment from 'moment';
 import { Inscripcion } from './entities/Inscripcion';
 import { Valoracion } from './entities/Valoracion';
-
+import { OAuth2Client } from 'google-auth-library';
 import NodeMailer from 'nodemailer';
 import { google } from 'googleapis';
 
@@ -740,7 +740,7 @@ export const forgotPassword = async (request: Request, response: Response): Prom
     }
     let token = jwt.sign({ usuario: payLoad }, process.env.JWT_KEY as string, { expiresIn: '15m' });
 
-    let url = process.env.FRONT_URL + '/reset-password/' + token;
+    let url = process.env.FRONT_URL + '/reset-password?token=' + token;
 
     sendMail(url, usuario.email).then(result => console.log(result)).catch(error => console.log(error));
 
@@ -855,4 +855,58 @@ export const removeEnroll = async (request: Request, response: Response): Promis
     let result = await getRepository(Inscripcion).delete(inscripcion.id);
 
     return response.json(result);
+}
+
+export const googleLogin = async (request: Request, response: Response): Promise<Response> => {
+    if (!request.body.tokenId) throw new Exception('Falta el token de login');
+
+    const client = new OAuth2Client(process.env.LOGIN_ID);
+
+    const ticket = await client.verifyIdToken({
+        idToken: request.body.tokenId,
+        audience: process.env.LOGIN_ID,  // Specify the CLIENT_ID of the app that accesses the backend
+        // Or, if multiple clients access the backend:
+        //[CLIENT_ID_1, CLIENT_ID_2, CLIENT_ID_3]
+    });
+    const payload = ticket.getPayload();
+
+    if (!payload) throw new Exception('Algo salio mal');
+
+    let userid = payload.sub;
+    let email = payload.email;
+    let nombre = payload.name;
+
+    let usuario = await getRepository(Usuario).findOne({
+        where: { email: email }
+    });
+
+    if (!usuario) {
+        // Hash de password
+        let salt = await bcrypt.genSalt();
+        let hashedPassword = await bcrypt.hash(userid, salt);
+
+        // Se crea la nueva instancia de usuario
+        usuario = getRepository(Usuario).create({
+            email: email,
+            contrasenia: hashedPassword,
+            nombre: nombre,
+        });
+
+        await getRepository(Usuario).save(usuario);
+    }
+
+    let payLoad = {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        email: usuario.email,
+        imagen: usuario.imagen
+    }
+    let token = jwt.sign({ usuario: payLoad }, process.env.JWT_KEY as string, { expiresIn: '1day' });
+
+    // Agrego fexha de expiracion
+    let expires = new Date();
+    expires.setDate(expires.getDate() + 1);
+    expires.setHours(expires.getHours() - 3);
+
+    return response.json({ usuario: payLoad, token, expires });
 }
