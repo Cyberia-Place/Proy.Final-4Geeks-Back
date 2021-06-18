@@ -15,6 +15,8 @@ import { Router, NextFunction, Request, Response } from 'express';
 import { safe, Exception } from './utils';
 import * as actions from './actions';
 import jwt from 'jsonwebtoken';
+import { getRepository } from 'typeorm';
+import { Usuario } from './entities/Usuario';
 const mercadopago = require("mercadopago");
 
 // declare a new router to include all the endpoints
@@ -91,7 +93,7 @@ router.get("/", function (req, res) {
   res.status(200).sendFile("index.html");
 }); 
 
-router.post("/checkout", (req, res) => {
+router.post("/checkout", auth, (req, res) => {
 
 
 	let preference = {
@@ -114,18 +116,23 @@ router.post("/checkout", (req, res) => {
 	mercadopago.preferences.create(preference)
 		.then(function (response: { body: { init_point: string; }; }) {
             console.log(response)
-            res.redirect(response.body.init_point)
+            actions.setUser(req.body.usuario.id);
+            return res.json(response.body.init_point);
 		}).catch(function (error: any) {
 			console.log(error);
 		});
 });
 
-router.get('/feedback', function(request, response) {
-	 response.json({
-		Payment: request.query.payment_id,
-		Status: request.query.status,
-		MerchantOrder: request.query.merchant_order_id
-    })
+router.get('/feedback', async function(request, response) {
+    if(typeof request.query.status === 'string' && request.query.status === 'approved'){
+        let usuario = await getRepository(Usuario).findOne(actions.getUser());
+
+        if(!usuario) throw new Exception('No se encontro elusuario');
+
+        actions.addCredits(100, usuario);
+
+        return response.redirect(process.env.FRONT_URL + '/inicio/compra');
+    }
 });
 
 

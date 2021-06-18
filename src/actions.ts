@@ -16,6 +16,15 @@ import { google } from 'googleapis';
 
 let formatTime = 'LT';
 let formatDate = 'YYYY-MM-DD';
+let userId: number = -1;
+
+export const getUser = () => {
+    return userId;
+}
+
+export const setUser = (user: number) => {
+    userId = user;
+}
 
 export const signUp = async (request: Request, response: Response): Promise<Response> => {
     // Validar datos ingresados

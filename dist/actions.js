@@ -39,7 +39,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 exports.__esModule = true;
-exports.googleLogin = exports.removeEnroll = exports.getCredits = exports.addCredits = exports.resetPassword = exports.forgotPassword = exports.getNextClasesDocente = exports.getUserClases = exports.getUserStats = exports.valorate = exports.getClass = exports.enroll = exports.createClass = exports.getClassesFiltered = exports.getClasses = exports.createCategory = exports.getCategories = exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = void 0;
+exports.googleLogin = exports.removeEnroll = exports.getCredits = exports.addCredits = exports.resetPassword = exports.forgotPassword = exports.getNextClasesDocente = exports.getUserClases = exports.getUserStats = exports.valorate = exports.getClass = exports.enroll = exports.createClass = exports.getClassesFiltered = exports.getClasses = exports.createCategory = exports.getCategories = exports.updatePassword = exports.updateProfile = exports.profile = exports.logIn = exports.signUp = exports.setUser = exports.getUser = void 0;
 var typeorm_1 = require("typeorm"); // getRepository"  traer una tabla de la base de datos asociada al objeto
 var utils_1 = require("./utils");
 var Usuario_1 = require("./entities/Usuario");
@@ -56,6 +56,15 @@ var nodemailer_1 = __importDefault(require("nodemailer"));
 var googleapis_1 = require("googleapis");
 var formatTime = 'LT';
 var formatDate = 'YYYY-MM-DD';
+var userId = -1;
+var getUser = function () {
+    return userId;
+};
+exports.getUser = getUser;
+var setUser = function (user) {
+    userId = user;
+};
+exports.setUser = setUser;
 var signUp = function (request, response) { return __awaiter(void 0, void 0, void 0, function () {
     var usuario, salt, hashedPassword, result;
     return __generator(this, function (_a) {
